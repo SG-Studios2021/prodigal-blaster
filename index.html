@@ -2251,8 +2251,20 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         joystickKnobEl.style.transform = "translate(0px, 0px)";
       }
 
+      function submitCurrentRunScore() {
+        if (!window.PB_isAuthenticated || score <= 0) return;
+        if (typeof window.PB_submitScore !== "function") {
+          console.error("Score submission is unavailable for the signed-in run.");
+          return;
+        }
+        window.PB_submitScore(score);
+      }
+
       function startNewGame() {
         if (!window.PB_canPlay) return;
+        if (gamePhase === "playing" || gamePhase === "paused") {
+          submitCurrentRunScore();
+        }
         score = 0;
         wave = 1;
         screenShake = 0;
@@ -2331,6 +2343,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
       function returnToMainMenu() {
         if (gamePhase !== "paused") return;
+        submitCurrentRunScore();
         gamePhase = "start";
         pointerFiring = false;
         touchFireHeld = false;
@@ -2361,9 +2374,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         gameOverScoreEl.textContent = score.toLocaleString();
         gameOverBestEl.textContent = highScore.toLocaleString();
         gameOverWaveEl.textContent = `Wave ${wave}`;
-        if (window.PB_isAuthenticated && score > 0 && typeof window.PB_submitScore === "function") {
-          window.PB_submitScore(score);
-        }
+        submitCurrentRunScore();
 
         if (isNewBest && score > 0) {
           newBestBadgeEl.classList.remove("hidden");
@@ -4427,7 +4438,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       // used by the Android app (back button / app switching)
       window.PB_back = () => { if (gamePhase === "playing") { togglePause(); return true; } return gamePhase === "cutscene"; };
       window.PB_pause = () => { if (gamePhase === "playing") togglePause(); };
-      document.addEventListener("visibilitychange", () => { if (document.hidden) window.PB_pause(); });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) return;
+        if (gamePhase === "playing" || gamePhase === "paused") submitCurrentRunScore();
+        window.PB_pause();
+      });
+      window.addEventListener("pagehide", () => {
+        if (gamePhase === "playing" || gamePhase === "paused") submitCurrentRunScore();
+      });
       btnResume.addEventListener("click", togglePause);
       btnRestartPause.addEventListener("click", startNewGame);
       btnMainMenu.addEventListener("click", returnToMainMenu);
