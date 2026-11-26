@@ -1472,7 +1472,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 </head>
 
 <body>
-   
+    <audio id="pb-bgm" src="./bgm.mp3" loop preload="auto"></audio>
   
     <div id="game-shell">
     <!-- Full-viewport responsive game canvas -->
@@ -1862,7 +1862,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         constructor() {
           this.ctx = null;
           this.muted = this.loadMutedState();
-        
+          document.getElementById("pb-bgm").muted = this.muted;
           this.syncIcon();
         }
 
@@ -1908,7 +1908,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
         toggleMute() {
           this.muted = !this.muted;
-         
+          document.getElementById("pb-bgm").muted = this.muted;
           this.saveMutedState();
           this.syncIcon();
           if (!this.muted) {
@@ -2270,7 +2270,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         setWasd(true);
 
         gamePhase = "playing";
-       
+        document.getElementById("pb-bgm").volume = 0.3;
+        const bgm = document.getElementById("pb-bgm");
         bgm.play().catch(() => {});
         sound.ensureContext();
         sound.playPowerup();
