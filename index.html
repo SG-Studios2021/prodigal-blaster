@@ -1384,11 +1384,97 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
   }
 
 
+#overlay-start { overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+#overlay-start > .start-dashboard {
+  width: min(100%, 980px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: clamp(16px, 3vw, 30px);
+  text-align: left;
+  touch-action: pan-y;
+}
+.start-dashboard-header { display: flex; align-items: center; gap: 18px; margin-bottom: 20px; }
+.start-dashboard-header .pl-logo { width: 104px; flex: 0 0 auto; }
+.start-dashboard-heading { min-width: 0; flex: 1; }
+.start-dashboard-heading h1 { margin: 3px 0 5px; font-size: clamp(22px, 4vw, 34px); line-height: 1; font-weight: 900; letter-spacing: -.04em; }
+.start-dashboard-heading p { margin: 0; color: #94a3b8; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.start-dashboard-kicker { color: #7dd3fc; font-size: 10px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+.start-preview-badge { flex: 0 0 auto; border: 1px solid rgba(251,191,36,.38); border-radius: 999px; padding: 7px 10px; background: rgba(245,158,11,.1); color: #fcd34d; font-size: 9px; font-weight: 900; letter-spacing: .12em; }
+.start-dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.start-dashboard-panel { min-width: 0; padding: 18px; border: 1px solid rgba(148,163,184,.16); border-radius: 20px; background: linear-gradient(145deg, rgba(15,23,42,.86), rgba(8,12,24,.76)); }
+.start-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
+.start-panel-heading h2 { margin: 3px 0 0; color: #f8fafc; font-size: 19px; font-weight: 900; letter-spacing: -.02em; }
+.start-panel-heading p { margin: 5px 0 0; color: #94a3b8; font-size: 11px; line-height: 1.5; }
+.start-local-status, .start-online-status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: #94a3b8; font-size: 9px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.start-local-status::before, .start-online-status::before { width: 7px; height: 7px; border-radius: 50%; content: ""; }
+.start-local-status::before { background: #fbbf24; box-shadow: 0 0 10px rgba(251,191,36,.65); }
+.start-online-status::before { background: #64748b; }
+.start-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 14px 0 16px; }
+.start-stat { padding: 11px 12px; border: 1px solid rgba(148,163,184,.14); border-radius: 13px; background: rgba(2,6,23,.5); }
+.start-stat span { display: block; color: #94a3b8; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.start-stat strong { display: block; margin-top: 4px; color: #fbbf24; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.start-stat.best strong { color: #7dd3fc; }
+.start-provider-stack { display: grid; gap: 8px; }
+.start-provider-button { display: flex; min-height: 42px; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(148,163,184,.2); border-radius: 12px; background: rgba(30,41,59,.55); color: #cbd5e1; font-family: inherit; font-size: 12px; font-weight: 800; letter-spacing: .01em; transition: background-color .15s, border-color .15s, opacity .15s; cursor: pointer; }
+.start-provider-button:disabled { opacity: .55; cursor: not-allowed; }
+.start-provider-button:not(:disabled):hover { border-color: rgba(56,189,248,.55); background: rgba(30,64,100,.72); }
+.start-provider-button svg { width: 16px; height: 16px; }
+.start-preview-note { margin: 10px 0 0; color: #64748b; font-size: 10px; line-height: 1.5; text-align: center; }
+.start-preview-note[data-tone="error"] { color: #fca5a5; }
+.start-preview-note[data-tone="success"] { color: #86efac; }
+.start-online-status.is-authenticated::before { background: #34d399; box-shadow: 0 0 10px rgba(52,211,153,.65); }
+.start-signout-button { width: 100%; min-height: 40px; margin-top: 9px; border-radius: 11px; font-size: 10px; }
+.start-leaderboard-empty { display: flex; min-height: 185px; flex-direction: column; align-items: center; justify-content: center; padding: 20px; border: 1px dashed rgba(56,189,248,.22); border-radius: 16px; background: radial-gradient(circle at 50% 35%, rgba(37,99,235,.12), rgba(2,6,23,.28) 72%); text-align: center; }
+.start-trophy { display: grid; width: 48px; height: 48px; place-items: center; margin-bottom: 12px; border: 1px solid rgba(56,189,248,.25); border-radius: 15px; background: rgba(14,165,233,.1); color: #7dd3fc; }
+.start-trophy svg { width: 24px; height: 24px; }
+.start-leaderboard-empty strong { color: #e2e8f0; font-size: 13px; font-weight: 900; }
+.start-leaderboard-empty span { max-width: 230px; margin-top: 5px; color: #64748b; font-size: 10px; line-height: 1.5; }
+.start-dashboard-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; padding: 14px 16px; border: 1px solid rgba(56,189,248,.18); border-radius: 18px; background: rgba(2,6,23,.46); }
+.start-action-copy { min-width: 0; }
+.start-action-copy strong { display: block; color: #e2e8f0; font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+.start-action-copy span { display: block; margin-top: 4px; color: #64748b; font-size: 10px; line-height: 1.45; }
+.start-action-controls { display: flex; min-width: min(52%, 340px); flex-direction: column; align-items: stretch; gap: 8px; }
+.start-action-controls #wings-label { text-align: center; }
+.start-launch { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 46px; padding: 11px 20px; white-space: nowrap; }
+.start-launch svg { width: 16px; height: 16px; }
+.start-dashboard .shop-slot { margin-top: 10px; }
+.start-credits-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 14px; padding: 10px 6px; border: 1px solid rgba(255,255,255,.07); border-radius: 15px; background: rgba(2,6,23,.35); }
+.start-credits-strip .credit { min-width: 0; }
+@media (max-width: 680px) {
+  #overlay-start > .start-dashboard { display: flex; flex-direction: column; }
+  .start-dashboard-header { order: 1; }
+  .start-dashboard-actions { order: 2; margin-top: 0; }
+  .start-dashboard-grid { order: 3; }
+  .start-dashboard .shop-slot { order: 4; }
+  .start-dashboard > .text-center { order: 5; }
+  .start-credits-strip { order: 6; }
+  .start-dashboard-grid { grid-template-columns: 1fr; }
+  .start-dashboard-header { gap: 12px; }
+  .start-dashboard-header .pl-logo { width: 76px; }
+  .start-dashboard-panel { padding: 15px; }
+  .start-leaderboard-empty { min-height: 130px; }
+}
+@media (max-width: 430px) {
+  #overlay-start > .start-dashboard { max-height: calc(100dvh - 20px); }
+  .start-dashboard-header { display: grid; grid-template-columns: 58px minmax(0, 1fr); column-gap: 12px; row-gap: 10px; align-items: center; }
+  .start-dashboard-header .pl-logo { grid-column: 1; grid-row: 1; width: 58px; }
+  .start-dashboard-heading { grid-column: 2; grid-row: 1; }
+  .start-dashboard-heading h1 { font-size: clamp(16px, 5vw, 20px); white-space: nowrap; }
+  .start-dashboard-heading p { font-size: 9px; }
+  .start-preview-badge { grid-column: 1 / -1; grid-row: 2; justify-self: start; margin: 0; }
+  .start-dashboard-actions { align-items: stretch; flex-direction: column; }
+  .start-action-controls { min-width: 0; }
+  .start-credits-strip { gap: 1px; padding-right: 3px; padding-left: 3px; }
+}
+
 #overlay-hermes.hidden{display:none}
 </style>
 </head>
+
 <body>
-  <div id="game-shell">
+   
+  
+    <div id="game-shell">
     <!-- Full-viewport responsive game canvas -->
     <canvas id="game-canvas"></canvas>
 
@@ -1480,29 +1566,86 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
     <!-- START OVERLAY -->
     <div id="overlay-start" class="absolute inset-0 z-40 flex items-center justify-center p-4 bg-[#08080f]/80 backdrop-blur-sm">
-      <div class="glass-card rounded-3xl max-w-md w-full p-6 sm:p-8 text-center flex flex-col items-center gap-4">
-        <img class="pl-logo w-44 sm:w-52 -mb-2" style="filter:drop-shadow(0 0 16px rgba(56,189,248,.55))" alt="Prodigals" />
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-400/35 text-sky-300 text-[11px] font-extrabold tracking-widest uppercase">
-          <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-          CAN YOU RESCUE ALL THE CEOS!
+      <div class="start-dashboard glass-card rounded-3xl">
+        <div class="start-dashboard-header">
+          <img class="pl-logo" style="filter:drop-shadow(0 0 16px rgba(56,189,248,.55))" alt="Prodigals" />
+          <div class="start-dashboard-heading">
+            <div class="start-dashboard-kicker">Prodigal$ Brothers · Arcade</div>
+            <h1>PRODIGAL$ BLASTER</h1>
+            <p>Can you rescue all the CEOs?</p>
+          </div>
+          <span class="start-preview-badge">Dashboard Preview</span>
         </div>
 
-        <h1 class="text-3xl sm:text-4xl font-black tracking-tight leading-none bg-gradient-to-r from-white via-sky-200 to-blue-400 bg-clip-text text-transparent">
-          PRODIGAL$ BLASTER
-        </h1>
+        <div class="start-dashboard-grid">
+          <section class="start-dashboard-panel" aria-labelledby="account-panel-title">
+            <div class="start-panel-heading">
+              <div>
+                <div class="start-dashboard-kicker">Pilot profile</div>
+                <h2 id="account-panel-title">Welcome, Pilot</h2>
+                <p id="account-description">Your current progress is saved on this browser.</p>
+              </div>
+              <span id="account-status" class="start-local-status">Guest</span>
+            </div>
+            <div class="start-stat-grid">
+              <div class="start-stat">
+                <span>Coins</span>
+                <strong id="dashboard-coins">0</strong>
+              </div>
+              <div class="start-stat best">
+                <span>Personal best</span>
+                <strong id="dashboard-best">0</strong>
+              </div>
+            </div>
+            <div id="auth-provider-buttons" class="start-provider-stack" aria-label="Sign-in options">
+              <button id="btn-google-login" class="start-provider-button" type="button" disabled aria-disabled="true">
+                <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.24 5.48-4.7 7.18l7.19 5.58c4.2-3.87 6.62-9.57 6.62-17.23z"/><path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.19-5.58c-2 1.34-4.55 2.13-8.71 2.13-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                Continue with Google
+              </button>
+              <button id="btn-facebook-login" class="start-provider-button" type="button" disabled aria-disabled="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.875 11.85v-8.38H7.08V12h3.045V9.35c0-3.005 1.79-4.665 4.53-4.665 1.312 0 2.685.235 2.685.235v2.95h-1.512c-1.49 0-1.955.925-1.955 1.875V12h3.33l-.532 3.47h-2.798v8.38A12 12 0 0 0 24 12z"/></svg>
+                Continue with Facebook
+              </button>
+            </div>
+            <button id="btn-signout" class="arcade-btn btn-secondary start-signout-button hidden" type="button">Sign out</button>
+            <p id="auth-message" class="start-preview-note" role="status" aria-live="polite">Connecting to sign-in...</p>
+          </section>
 
-        <div class="text-[11px] sm:text-xs font-extrabold tracking-widest uppercase text-slate-300 space-y-1.5">
-          <div><span class="text-sky-300">P / ESC</span> = Pause</div>
-          <div><span class="text-sky-300">WASD / Arrows</span> = Movement</div>
+          <section class="start-dashboard-panel" aria-labelledby="leaderboard-panel-title">
+            <div class="start-panel-heading">
+              <div>
+                <div class="start-dashboard-kicker">Compete worldwide</div>
+                <h2 id="leaderboard-panel-title">Global leaderboard</h2>
+                <p>Your next run could put you on the board.</p>
+              </div>
+              <span class="start-online-status">Coming soon</span>
+            </div>
+            <div class="start-leaderboard-empty">
+              <div class="start-trophy" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg>
+              </div>
+              <strong>Make your mark, Pilot</strong>
+              <span>Global rankings will appear here when accounts and online scores are connected.</span>
+            </div>
+          </section>
         </div>
 
-        <div id="wings-label" class="hidden text-[11px] font-extrabold tracking-wider uppercase text-amber-300"></div>
+        <div class="start-dashboard-actions">
+          <div class="start-action-copy">
+            <strong>READY FOR TAKEOFF?</strong>
+            <span>Play as a guest now. You can connect an account later to sync your progress.</span>
+          </div>
+          <div class="start-action-controls">
+            <div id="wings-label" class="hidden text-[11px] font-extrabold tracking-wider uppercase text-amber-300"></div>
+            <button id="btn-start" type="button" class="arcade-btn btn-primary start-launch">
+              Launch Mission
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+        </div>
         <div class="shop-slot w-full"></div>
-        <button id="btn-start" type="button" class="arcade-btn btn-primary w-full py-3.5 sm:py-4 text-sm sm:text-base mt-1">
-          Launch Mission
-        </button>
-        <div class="text-[10px] font-bold tracking-widest uppercase text-slate-500">Developed by: Prodigal$ Brothers</div>
-        <div class="w-full grid grid-cols-5 gap-1 bg-slate-950/60 rounded-2xl border border-white/10 px-2 py-3 -mt-1">
+        <div class="text-[9px] font-bold tracking-widest uppercase text-slate-500 text-center mt-3">Developed by: Prodigal$ Brothers</div>
+        <div class="start-credits-strip">
           <div class="credit"><div class="ring"><img class="credit-face" data-k="1" alt="Cris" /></div><b>Cris</b><span>Programming</span></div>
           <div class="credit"><div class="ring"><img class="credit-face" data-k="0" alt="Edrian" /></div><b>Edrian</b><span>Concept</span></div>
           <div class="credit"><div class="ring"><img class="credit-face" data-k="3" alt="Vench" /></div><b>Vench</b><span>Idea</span></div>
@@ -1529,6 +1672,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             Restart
           </button>
         </div>
+        <button id="btn-main-menu" type="button" class="arcade-btn btn-secondary w-full py-3 text-xs sm:text-sm">
+          Return to Main Menu
+        </button>
+        <p class="text-[10px] text-slate-500 -mt-2">Leaving the mission ends this run.</p>
       </div>
     </div>
 
@@ -1635,6 +1782,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           if (!b.disabled) { b.style.background = "linear-gradient(180deg,#22c55e,#15803d)"; b.style.borderColor = "#86efac"; b.style.color = "#fff"; b.style.boxShadow = "0 0 16px rgba(34,197,94,.55)"; }
           else { b.style.background = ""; b.style.borderColor = ""; b.style.color = ""; b.style.boxShadow = ""; }
         });
+        const dashboardCoinsEl = document.getElementById("dashboard-coins");
+        if (dashboardCoinsEl) dashboardCoinsEl.textContent = coins.toLocaleString();
       }
       function buyPotion() {
         if (potions >= POTION_MAX || coins < POTION_PRICE) return;
@@ -1689,6 +1838,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const btnStart = document.getElementById("btn-start");
       const btnResume = document.getElementById("btn-resume");
       const btnRestartPause = document.getElementById("btn-restart-pause");
+      const btnMainMenu = document.getElementById("btn-main-menu");
       const btnRetry = document.getElementById("btn-retry");
       const btnPause = document.getElementById("btn-pause");
       const btnMute = document.getElementById("btn-mute");
@@ -1709,6 +1859,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         constructor() {
           this.ctx = null;
           this.muted = this.loadMutedState();
+       
           this.syncIcon();
         }
 
@@ -1754,6 +1905,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
         toggleMute() {
           this.muted = !this.muted;
+        
           this.saveMutedState();
           this.syncIcon();
           if (!this.muted) {
@@ -1894,6 +2046,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       let gamePhase = "start"; // "start" | "playing" | "paused" | "gameover"
       let score = 0;
       let highScore = loadHighScore();
+      const dashboardBestEl = document.getElementById("dashboard-best");
+      if (dashboardBestEl) dashboardBestEl.textContent = highScore.toLocaleString();
       let wave = 1;
       let waveBannerTimer = 0;
       let screenShake = 0;
@@ -1957,6 +2111,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         } catch {
           // Ignore storage quota errors
         }
+        if (dashboardBestEl) dashboardBestEl.textContent = val.toLocaleString();
       }
 
       function initStarfield() {
@@ -2112,6 +2267,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         setWasd(true);
 
         gamePhase = "playing";
+       
+        bgm.play().catch(() => {});
         sound.ensureContext();
         sound.playPowerup();
         setupWave(1);
@@ -2132,6 +2289,19 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           pauseOverlayEl.classList.add("hidden");
           sound.ensureContext();
         }
+      }
+
+      function returnToMainMenu() {
+        if (gamePhase !== "paused") return;
+        gamePhase = "start";
+        pointerFiring = false;
+        touchFireHeld = false;
+        resetJoystickVisual();
+        keys.clear();
+        pauseOverlayEl.classList.add("hidden");
+        startOverlayEl.classList.remove("hidden");
+        touchControlsEl.classList.add("hidden");
+        setWasd(false);
       }
 
       function triggerGameOver() {
@@ -4201,6 +4371,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       document.addEventListener("visibilitychange", () => { if (document.hidden) window.PB_pause(); });
       btnResume.addEventListener("click", togglePause);
       btnRestartPause.addEventListener("click", startNewGame);
+      btnMainMenu.addEventListener("click", returnToMainMenu);
       btnRetry.addEventListener("click", startNewGame);
       btnPause.addEventListener("click", togglePause);
       btnMute.addEventListener("click", () => sound.toggleMute());
@@ -4213,5 +4384,142 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       requestAnimationFrame(gameLoop);
     })();
   </script>
+  <script type="module">
+    (async () => {
+      const googleButton = document.getElementById("btn-google-login");
+      const facebookButton = document.getElementById("btn-facebook-login");
+      const signOutButton = document.getElementById("btn-signout");
+      const providerButtons = document.getElementById("auth-provider-buttons");
+      const accountTitle = document.getElementById("account-panel-title");
+      const accountDescription = document.getElementById("account-description");
+      const accountStatus = document.getElementById("account-status");
+      const authMessage = document.getElementById("auth-message");
+
+      const setMessage = (message, tone) => {
+        authMessage.textContent = message;
+        if (tone) authMessage.dataset.tone = tone;
+        else delete authMessage.dataset.tone;
+      };
+
+      const setBusy = (busy) => {
+        googleButton.disabled = busy;
+        facebookButton.disabled = busy;
+        signOutButton.disabled = busy;
+        googleButton.setAttribute("aria-disabled", String(busy));
+        facebookButton.setAttribute("aria-disabled", String(busy));
+      };
+
+      const explainError = (error) => {
+        switch (error && error.code) {
+          case "auth/unauthorized-domain":
+            return "This website domain is not authorized in Firebase Authentication.";
+          case "auth/operation-not-allowed":
+            return "This sign-in provider is disabled in Firebase Authentication.";
+          case "auth/popup-blocked":
+            return "The sign-in popup was blocked. Allow popups and try again.";
+          case "auth/popup-closed-by-user":
+          case "auth/cancelled-popup-request":
+            return "Sign-in was cancelled.";
+          case "auth/account-exists-with-different-credential":
+            return "This email already uses another sign-in method. Sign in with that method first.";
+          case "auth/network-request-failed":
+            return "Network error. Check your connection and try again.";
+          default:
+            return "Sign-in failed (" + ((error && error.code) || "unknown error") + "). Check Firebase and provider settings.";
+        }
+      };
+
+      try {
+        const [firebaseAppSdk, firebaseAuthSdk] = await Promise.all([
+          import("https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js"),
+          import("https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js")
+        ]);
+        const firebaseApp = firebaseAppSdk.initializeApp({
+          apiKey: "AIzaSyBLQNCSdlIzAW5q9GN57kDHtmJsvKtEX2o",
+          authDomain: "prodigal-runner.firebaseapp.com",
+          projectId: "prodigal-runner",
+          appId: "1:238978847862:web:adf54c221f2a41ec5fbb57"
+        });
+        const auth = firebaseAuthSdk.getAuth(firebaseApp);
+        const googleProvider = new firebaseAuthSdk.GoogleAuthProvider();
+        const facebookProvider = new firebaseAuthSdk.FacebookAuthProvider();
+
+        const signIn = async (provider) => {
+          setBusy(true);
+          setMessage("Opening secure sign-in...");
+          try {
+            if (window.matchMedia("(pointer: coarse)").matches) {
+              await firebaseAuthSdk.signInWithRedirect(auth, provider);
+              return;
+            }
+            await firebaseAuthSdk.signInWithPopup(auth, provider);
+          } catch (error) {
+            console.error("Firebase sign-in failed", error);
+            setMessage(explainError(error), "error");
+          } finally {
+            setBusy(false);
+          }
+        };
+
+        googleButton.addEventListener("click", () => signIn(googleProvider));
+        facebookButton.addEventListener("click", () => signIn(facebookProvider));
+        signOutButton.addEventListener("click", async () => {
+          setBusy(true);
+          try {
+            await firebaseAuthSdk.signOut(auth);
+          } catch (error) {
+            console.error("Firebase sign-out failed", error);
+            setMessage("Sign-out failed. Please try again.", "error");
+          } finally {
+            setBusy(false);
+          }
+        });
+
+        let redirectError = null;
+        try {
+          await firebaseAuthSdk.getRedirectResult(auth);
+        } catch (error) {
+          console.error("Firebase redirect sign-in failed", error);
+          redirectError = error;
+        }
+
+        firebaseAuthSdk.onAuthStateChanged(auth, (user) => {
+          if (user) {
+            const name = user.displayName || user.email || "Pilot";
+            accountTitle.textContent = "Welcome, " + name;
+            accountDescription.textContent = "Signed in. Coins and scores remain local until cloud saving is connected.";
+            accountStatus.textContent = "Signed in";
+            accountStatus.className = "start-online-status is-authenticated";
+            providerButtons.classList.add("hidden");
+            signOutButton.classList.remove("hidden");
+          } else {
+            accountTitle.textContent = "Welcome, Pilot";
+            accountDescription.textContent = "Your current progress is saved on this browser.";
+            accountStatus.textContent = "Guest";
+            accountStatus.className = "start-local-status";
+            providerButtons.classList.remove("hidden");
+            signOutButton.classList.add("hidden");
+          }
+
+          if (redirectError) {
+            setMessage(explainError(redirectError), "error");
+            redirectError = null;
+          } else if (user) {
+            setMessage("Account connected. Cloud saving is not set up yet.", "success");
+          } else {
+            setMessage("Sign-in ready. Game progress is still saved in this browser.");
+          }
+        }, (error) => {
+          console.error("Firebase auth state listener failed", error);
+          setMessage("Could not check sign-in status. Reload the page and try again.", "error");
+        });
+
+        setBusy(false);
+      } catch (error) {
+        console.error("Firebase Authentication could not initialize", error);
+        setMessage("Could not load sign-in. Check your connection and Firebase setup.", "error");
+      }
+    })();
+  </script>
 </body>
-</html>
+</html> 
