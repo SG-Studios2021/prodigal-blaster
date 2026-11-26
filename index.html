@@ -2082,6 +2082,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       let gamePhase = "start"; // "start" | "playing" | "paused" | "gameover"
       let score = 0;
       let highScore = loadHighScore();
+      window.PB_getPersonalBest = () => highScore;
       const dashboardBestEl = document.getElementById("dashboard-best");
       if (dashboardBestEl) dashboardBestEl.textContent = highScore.toLocaleString();
       let wave = 1;
@@ -4690,28 +4691,46 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           }
         };
 
-        const syncGoogleLeaderboardName = async (user) => {
+        const syncGoogleLeaderboard = async (user) => {
           const scoreRef = firestoreSdk.doc(db, "leaderboard", user.uid);
           const displayName = googleDisplayName(user);
+          const localBest = window.PB_getPersonalBest();
+          if (!Number.isSafeInteger(localBest) || localBest < 0) {
+            setMessage("Could not sync an invalid personal best.", "error");
+            return;
+          }
+
           try {
             await firestoreSdk.runTransaction(db, async (transaction) => {
               const existing = await transaction.get(scoreRef);
-              if (!existing.exists() || existing.data().displayName === displayName) return;
-              const score = Number(existing.data().score);
-              if (!Number.isSafeInteger(score) || score <= 0) {
+              if (!existing.exists()) {
+                if (localBest <= 0) return;
+                transaction.set(scoreRef, {
+                  uid: user.uid,
+                  displayName,
+                  score: localBest,
+                  updatedAt: firestoreSdk.serverTimestamp()
+                });
+                return;
+              }
+
+              const existingScore = Number(existing.data().score);
+              if (!Number.isSafeInteger(existingScore) || existingScore <= 0) {
                 throw new Error("Existing leaderboard score is invalid.");
               }
+              const bestScore = Math.max(existingScore, localBest);
+              if (bestScore === existingScore && existing.data().displayName === displayName) return;
               transaction.set(scoreRef, {
                 uid: user.uid,
                 displayName,
-                score,
+                score: bestScore,
                 updatedAt: firestoreSdk.serverTimestamp()
               });
             });
           } catch (error) {
-            console.error("Firebase leaderboard name update failed", error);
+            console.error("Firebase leaderboard profile sync failed", error);
             const code = error && error.code ? " (" + error.code + ")" : "";
-            setMessage("Could not update your leaderboard name" + code + ". Check Firestore access rules.", "error");
+            setMessage("Could not sync your leaderboard profile" + code + ". Check Firestore access rules.", "error");
           }
         };
 
@@ -4734,7 +4753,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             signOutButton.classList.remove("hidden");
             playModeTitle.textContent = "SIGNED IN WITH GOOGLE";
             playModeDescription.textContent = "Your best scores are saved to the global leaderboard.";
-            void syncGoogleLeaderboardName(user);
+            void syncGoogleLeaderboard(user);
             try {
               sessionStorage.removeItem(window.PB_GUEST_MODE_KEY);
               sessionStorage.removeItem(window.PB_GUEST_NAME_KEY);
