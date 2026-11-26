@@ -1422,6 +1422,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 .start-stat strong { display: block; margin-top: 4px; color: #fbbf24; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .start-stat.best strong { color: #7dd3fc; }
 .start-provider-stack { display: grid; gap: 8px; }
+.start-provider-stack.hidden { display: none; }
 .start-provider-button { display: flex; min-height: 56px; align-items: center; justify-content: center; gap: 10px; border: 1px solid rgba(148,163,184,.2); border-radius: 12px; background: rgba(30,41,59,.55); color: #cbd5e1; font-family: inherit; font-size: 14px; font-weight: 800; letter-spacing: .01em; transition: background-color .15s, border-color .15s, opacity .15s; cursor: pointer; }
 .start-provider-button.hidden { display: none; }
 .start-provider-button:disabled { opacity: .55; cursor: not-allowed; }
@@ -4676,7 +4677,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           startButton.disabled = !window.PB_canPlay;
           startButton.classList.toggle("hidden", !window.PB_canPlay);
           if (googleUser) {
-            const name = anonymousName(user.uid);
+            const name = user.displayName || user.email || anonymousName(user.uid);
             accountTitle.textContent = "Welcome, " + name;
             accountDescription.textContent = "Signed in with Google. Your best score is saved to the global leaderboard.";
             accountStatus.textContent = "Signed in";
