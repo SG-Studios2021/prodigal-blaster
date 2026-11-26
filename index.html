@@ -4539,6 +4539,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         }
         return "Anonymous " + String((hash >>> 0) % 9000 + 1000);
       };
+      const googleDisplayName = (user) => (user.displayName || "Google User").slice(0, 40);
 
       try {
         const [firebaseAppSdk, firebaseAuthSdk, firestoreSdk] = await Promise.all([
@@ -4565,6 +4566,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           }
 
           snapshot.docs.forEach((scoreDoc, index) => {
+            const scoreData = scoreDoc.data();
             const row = document.createElement("li");
             row.className = "start-leaderboard-row";
             const rank = document.createElement("span");
@@ -4572,10 +4574,12 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             rank.textContent = String(index + 1);
             const name = document.createElement("span");
             name.className = "start-leaderboard-name";
-            name.textContent = anonymousName(scoreDoc.id);
+            name.textContent = typeof scoreData.displayName === "string" && scoreData.displayName
+              ? scoreData.displayName
+              : anonymousName(scoreDoc.id);
             const value = document.createElement("span");
             value.className = "start-leaderboard-score";
-            value.textContent = Number(scoreDoc.data().score || 0).toLocaleString();
+            value.textContent = Number(scoreData.score || 0).toLocaleString();
             row.append(rank, name, value);
             leaderboardList.append(row);
           });
@@ -4654,6 +4658,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
               if (existing.exists() && Number(existing.data().score) >= score) return false;
               transaction.set(scoreRef, {
                 uid: user.uid,
+                displayName: googleDisplayName(user),
                 score,
                 updatedAt: firestoreSdk.serverTimestamp()
               });
@@ -4667,6 +4672,31 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           }
         };
 
+        const syncGoogleLeaderboardName = async (user) => {
+          const scoreRef = firestoreSdk.doc(db, "leaderboard", user.uid);
+          const displayName = googleDisplayName(user);
+          try {
+            await firestoreSdk.runTransaction(db, async (transaction) => {
+              const existing = await transaction.get(scoreRef);
+              if (!existing.exists() || existing.data().displayName === displayName) return;
+              const score = Number(existing.data().score);
+              if (!Number.isSafeInteger(score) || score <= 0) {
+                throw new Error("Existing leaderboard score is invalid.");
+              }
+              transaction.set(scoreRef, {
+                uid: user.uid,
+                displayName,
+                score,
+                updatedAt: firestoreSdk.serverTimestamp()
+              });
+            });
+          } catch (error) {
+            console.error("Firebase leaderboard name update failed", error);
+            const code = error && error.code ? " (" + error.code + ")" : "";
+            setMessage("Could not update your leaderboard name" + code + ". Check Firestore access rules.", "error");
+          }
+        };
+
         firebaseAuthSdk.onAuthStateChanged(auth, (user) => {
           const googleUser = isGoogleUser(user);
           const guestName = getGuestName();
@@ -4677,7 +4707,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           startButton.disabled = !window.PB_canPlay;
           startButton.classList.toggle("hidden", !window.PB_canPlay);
           if (googleUser) {
-            const name = user.displayName || user.email || anonymousName(user.uid);
+            const name = googleDisplayName(user);
             accountTitle.textContent = "Welcome, " + name;
             accountDescription.textContent = "Signed in with Google. Your best score is saved to the global leaderboard.";
             accountStatus.textContent = "Signed in";
@@ -4686,6 +4716,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             signOutButton.classList.remove("hidden");
             playModeTitle.textContent = "SIGNED IN WITH GOOGLE";
             playModeDescription.textContent = "Your best scores are saved to the global leaderboard.";
+            void syncGoogleLeaderboardName(user);
             try {
               sessionStorage.removeItem(window.PB_GUEST_MODE_KEY);
               sessionStorage.removeItem(window.PB_GUEST_NAME_KEY);
