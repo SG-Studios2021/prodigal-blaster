@@ -1744,6 +1744,9 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
       const WINGS_KEY = "prodigal_blaster_hermes_wings_v1";
       const WINGS_MAX = 5;
+      const BASE_PERMANENT_BLUE_SHOTS = 2;
+      const MAX_PERMANENT_BLUE_SHOTS = 5;
+      const MAX_JIAN_SHOT_UPGRADES = MAX_PERMANENT_BLUE_SHOTS - BASE_PERMANENT_BLUE_SHOTS;
       const MYSTERY_KILLS_TO_REVEAL = 3; // "?" wins needed before Hermes shows himself
       let wings = 0;
       let runLevel = 0;                    // +1 for every boss beaten in this run
@@ -1760,7 +1763,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const coinDrops = [];
       try {
         const m = JSON.parse(localStorage.getItem(META_KEY) || "{}") || {};
-        coins = Math.max(0, m.coins | 0); potions = Math.max(0, Math.min(POTION_MAX, m.potions | 0)); jianKills = Math.max(0, Math.min(2, m.jianKills | 0)); hasOrbs = !!m.orbs;
+        coins = Math.max(0, m.coins | 0); potions = Math.max(0, Math.min(POTION_MAX, m.potions | 0)); jianKills = Math.max(0, Math.min(MAX_JIAN_SHOT_UPGRADES, m.jianKills | 0)); hasOrbs = !!m.orbs;
       } catch {}
       function saveMeta() { try { localStorage.setItem(META_KEY, JSON.stringify({ coins, potions, jianKills, orbs: hasOrbs })); } catch {} refreshShop(); }
       function refreshShop() {
@@ -1859,7 +1862,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         constructor() {
           this.ctx = null;
           this.muted = this.loadMutedState();
-       
+        
           this.syncIcon();
         }
 
@@ -1905,7 +1908,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
         toggleMute() {
           this.muted = !this.muted;
-        
+         
           this.saveMutedState();
           this.syncIcon();
           if (!this.muted) {
@@ -2182,7 +2185,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           hudWeaponEl.className =
             "font-bold text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-cyan-400/25 text-cyan-200 border border-cyan-300/60";
         } else {
-          hudWeaponEl.textContent = ["TWIN", "TRIPLE", "QUAD"][jianKills] + " PULSE";
+          hudWeaponEl.textContent = ["TWIN", "TRIPLE", "QUAD", "FIVE"][jianKills] + " PULSE";
           hudWeaponEl.className =
             "font-bold text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30";
         }
@@ -2354,11 +2357,20 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             { x: player.x + 14, y: player.y - 16, vx: 95, vy: -730, radius: 4.5, damage: 14, color: "#38bdf8" }
           );
         } else {
-          // twin -> triple (1st Jian down) -> quadruple (2nd Jian down)
-          const n = 2 + jianKills, gap = n === 2 ? 22 : n === 3 ? 18 : 15;
-          for (let i = 0; i < n; i++) {
-            const o = i - (n - 1) / 2;
-            bullets.push({ x: player.x + o * gap, y: player.y - 18, vx: n > 2 ? o * 10 : 0, vy: -710, radius: 4, damage: 15, color: "#38bdf8" });
+          const n = Math.min(MAX_PERMANENT_BLUE_SHOTS, BASE_PERMANENT_BLUE_SHOTS + jianKills);
+          if (n === BASE_PERMANENT_BLUE_SHOTS) {
+            for (const side of [-1, 1]) {
+              bullets.push({ x: player.x + side * 11, y: player.y - 18, vx: 0, vy: -710, radius: 4, damage: 15, color: "#38bdf8" });
+            }
+          } else {
+            const outerAngle = n === 3 ? 0.24 : n === 4 ? 0.34 : 0.42;
+            const edgeOffset = (n - 1) / 2;
+            const speed = 710;
+            for (let i = 0; i < n; i++) {
+              const offset = i - (n - 1) / 2;
+              const angle = (offset / edgeOffset) * outerAngle;
+              bullets.push({ x: player.x, y: player.y - 18, vx: Math.sin(angle) * speed, vy: -Math.cos(angle) * speed, radius: 4, damage: 15, color: "#38bdf8" });
+            }
           }
         }
         if (overdrive) for (let k = 1; k <= jianKills; k++) for (const sd of [-1, 1]) bullets.push({ x: player.x + sd * (16 + k * 9), y: player.y - 14, vx: sd * (95 + k * 70), vy: -720, radius: 4, damage: 13, color: "#38bdf8" });
@@ -2818,7 +2830,16 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           jianDown = true;
           const gotMirror = ascension > 0 && gainPower("mirror");
           let shotMsg = "";
-          if (jianKills < 2) { jianKills++; saveMeta(); shotMsg = " · PERMANENT: " + ["", "TRIPLE", "QUADRUPLE"][jianKills] + " BLUE SHOT"; toast(["", "TRIPLE", "QUADRUPLE"][jianKills] + " SHOT UNLOCKED!", "#38bdf8", 3); }
+          if (jianKills < MAX_JIAN_SHOT_UPGRADES) {
+            jianKills++;
+            saveMeta();
+            const shotCount = Math.min(MAX_PERMANENT_BLUE_SHOTS, BASE_PERMANENT_BLUE_SHOTS + jianKills);
+            const shotName = ["", "", "", "TRIPLE", "QUAD", "FIVE-WAY"][shotCount];
+            shotMsg = " · PERMANENT: " + shotName + " BLUE SHOT";
+            toast(shotName + " SHOT UNLOCKED!", "#38bdf8", 3);
+          } else {
+            shotMsg = " · PERMANENT BLUE SHOT MAX (" + MAX_PERMANENT_BLUE_SHOTS + ")";
+          }
           sonicLevel = Math.min(3, sonicLevel + 1);
           laserTimer = 8; orbitTimer = missileTimer = shieldTimer = 16;
           player.hp = maxHp();
@@ -4522,4 +4543,4 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
     })();
   </script>
 </body>
-</html> 
+</html>
