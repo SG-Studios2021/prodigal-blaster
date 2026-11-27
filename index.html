@@ -1928,6 +1928,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         { id: "jian",    name: "Void Jian",  price: 5000, dmg: 1.7, ult: 3, boss: true, thumb: "jianEvo",     shots: ["#a855f7", "#e879f9"], blurb: "Void Collapse [E]: void blast + Void Pulse + strongest army" }
       ];
       // dmg = normal shot damage multiplier, ult = ultimate damage multiplier (edit them in the list above)
+      const multiplyShotDamage = true;    // <-- ON/OFF switch: true = skins multiply shot damage, false = all skins shoot ×1
       const ULT_BLAST = 100;              // base damage of an ultimate that hits every enemy
       const ultBoost = { shot: 0, missile: 0, laser: 0, mult: 1 };   // seconds left on each boosted attack
       const curSkin = () => skinById(equippedSkin) || SKINS[0];
@@ -2237,7 +2238,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           const btn = eq ? `<button type="button" class="sk-btn equipped" disabled>Equipped</button>`
             : owned ? `<button type="button" class="sk-btn" data-equip="${s.id}">Equip</button>`
             : `<button type="button" class="sk-btn buy" data-buy="${s.id}" ${coins < skinPrice(s) ? "disabled" : ""}>${skinPrice(s) ? skinPrice(s) + " coins" : "Free"}</button>`;
-          return `<div class="sk-card${eq ? " equipped" : ""}"><img class="${s.boss ? "face" : ""}" src="${skinThumb(s)}" alt=""><span class="sk-name">${s.name}</span><span class="sk-ab">${s.blurb}</span><span class="sk-ab">Damage ×${s.dmg}${ABILITIES[s.id] ? " · Ultimate ×" + s.ult : ""}</span>${btn}</div>`;
+          return `<div class="sk-card${eq ? " equipped" : ""}"><img class="${s.boss ? "face" : ""}" src="${skinThumb(s)}" alt=""><span class="sk-name">${s.name}</span><span class="sk-ab">${s.blurb}</span><span class="sk-ab">Damage ×${multiplyShotDamage ? s.dmg : 1}${ABILITIES[s.id] ? " · Ultimate ×" + s.ult : ""}</span>${btn}</div>`;
         }).join("");
       }
       function refreshShop() {
@@ -5084,7 +5085,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         if (wantsFire && player.fireTimer <= 0) {
           const firstNew = bullets.length;
           spawnPlayerShot();
-          const power = curSkin().dmg * (ultBoost.shot > 0 ? ultBoost.mult : 1);
+          const power = (multiplyShotDamage ? curSkin().dmg : 1) * (ultBoost.shot > 0 ? ultBoost.mult : 1);
           for (let k = firstNew; k < bullets.length; k++) bullets[k].damage *= power;
           player.fireTimer =
             player.overdriveTimer > 0
