@@ -492,6 +492,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
     @keyframes fallenShake { 0%, 100% { translate: 0 0; } 25% { translate: 1px -1px; } 75% { translate: -1px 1px; } }
     @media (orientation: portrait) { #overlay-hermes.fallen #hermes-art { height: 66%; object-fit: contain; object-position: center; } }
     @media (prefers-reduced-motion: reduce) { #overlay-hermes.fallen #hermes-art, #overlay-hermes.fallen #hermes-line { animation: none; } }
+    .audio-toggle[aria-pressed="true"] { border-color: #38bdf8; color: #e0f2fe; }
+    .audio-toggle[aria-pressed="false"] { opacity: .55; text-decoration: line-through; }
     @keyframes hermesLoom { from { transform: scale(1); } to { transform: scale(1.09); } }
   </style>
 <style>
@@ -1621,25 +1623,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         <span id="wave-announcement-text" class="text-xs sm:text-sm font-extrabold tracking-widest uppercase text-sky-200">WAVE 1 INCOMING</span>
       </div>
 
-      <!-- Right: Sound Toggle & Pause Button -->
+      <!-- Right: Pause Button -->
       <div class="flex items-center gap-2 pointer-events-auto">
-        <button
-          id="btn-mute"
-          type="button"
-          aria-label="Toggle Sound"
-          class="arcade-btn btn-secondary p-2.5 sm:p-3 rounded-xl flex items-center justify-center"
-          title="Mute / Unmute Audio"
-        >
-          <svg id="icon-sound-on" class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
-          </svg>
-          <svg id="icon-sound-off" class="w-5 h-5 text-slate-400 hidden" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M23 9l-6 6M17 9l6 6" />
-          </svg>
-        </button>
-
         <button
           id="btn-pause"
           type="button"
@@ -1775,6 +1760,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         <p class="text-xs sm:text-sm text-slate-300">
           Current Wave: <strong id="pause-wave" class="text-sky-300">1</strong> • Score: <strong id="pause-score" class="text-white">0</strong>
         </p>
+        <div class="flex gap-2.5 w-full">
+          <button id="btn-music" type="button" class="arcade-btn btn-secondary audio-toggle flex-1 py-3 text-xs sm:text-sm" aria-pressed="true">Music: On</button>
+          <button id="btn-sfx" type="button" class="arcade-btn btn-secondary audio-toggle flex-1 py-3 text-xs sm:text-sm" aria-pressed="true">SFX: On</button>
+        </div>
         <div class="flex flex-col sm:flex-row gap-2.5 w-full mt-1">
           <button id="btn-resume" type="button" class="arcade-btn btn-primary flex-1 py-3 text-xs sm:text-sm">
             Resume
@@ -2185,7 +2174,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         coins = Math.max(0, m.coins | 0); potions = Math.max(0, Math.min(POTION_MAX, m.potions | 0)); jianKills = Math.max(0, Math.min(MAX_JIAN_SHOT_UPGRADES, m.jianKills | 0)); hasOrbs = !!m.orbs;
         loadSkins(m);
       } catch {}
-      function saveMeta() { try { saveGameItem(META_KEY, JSON.stringify({ coins, potions, jianKills, orbs: hasOrbs, skins: ownedSkins, skin: equippedSkin })); } catch {} refreshShop(); }
+      function saveMeta() { try { saveGameItem(META_KEY, JSON.stringify({ coins, potions, jianKills, orbs: hasOrbs, skins: ownedSkins, skin: equippedSkin, musicOff: sound.musicMuted })); } catch {} refreshShop(); }
       function buySkin(id) {
         const s = skinById(id);
         if (!s || ownedSkins.includes(id) || coins < skinPrice(s)) return;
@@ -2312,9 +2301,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const btnMainMenu = document.getElementById("btn-main-menu");
       const btnRetry = document.getElementById("btn-retry");
       const btnPause = document.getElementById("btn-pause");
-      const btnMute = document.getElementById("btn-mute");
-      const iconSoundOn = document.getElementById("icon-sound-on");
-      const iconSoundOff = document.getElementById("icon-sound-off");
+      const btnMusic = document.getElementById("btn-music");
+      const btnSfx = document.getElementById("btn-sfx");
 
       const touchControlsEl = document.getElementById("touch-controls");
       const wasdHintEl = document.getElementById("wasd-hint");
@@ -2330,8 +2318,18 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         constructor() {
           this.ctx = null;
           this.muted = this.loadMutedState();
-          document.getElementById("pb-bgm").muted = this.muted;
-          this.syncIcon();
+          this.musicMuted = this.loadMusicState();
+          this.applyAudioState();
+        }
+
+        // saves made before the two toggles existed follow the old single mute setting
+        loadMusicState() {
+          try {
+            const meta = JSON.parse(gameStorage().getItem(META_KEY) || "{}") || {};
+            return typeof meta.musicOff === "boolean" ? meta.musicOff : this.loadMutedState();
+          } catch {
+            return false;
+          }
         }
 
         loadMutedState() {
@@ -2350,13 +2348,11 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           }
         }
 
-        syncIcon() {
-          if (this.muted) {
-            iconSoundOn.classList.add("hidden");
-            iconSoundOff.classList.remove("hidden");
-          } else {
-            iconSoundOn.classList.remove("hidden");
-            iconSoundOff.classList.add("hidden");
+        applyAudioState() {
+          document.getElementById("pb-bgm").muted = this.musicMuted;
+          for (const [btn, label, off] of [[btnMusic, "Music", this.musicMuted], [btnSfx, "SFX", this.muted]]) {
+            btn.textContent = label + (off ? ": Off" : ": On");
+            btn.setAttribute("aria-pressed", String(!off));
           }
         }
 
@@ -2374,15 +2370,19 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           return this.ctx;
         }
 
-        toggleMute() {
+        toggleSfx() {
           this.muted = !this.muted;
-          document.getElementById("pb-bgm").muted = this.muted;
           this.saveMutedState();
-          this.syncIcon();
-          if (!this.muted) {
-            this.ensureContext();
-            this.playPowerup();
-          }
+          saveMeta();   // keeps the music choice stored separately
+          this.applyAudioState();
+          if (!this.muted) this.playPowerup();
+        }
+
+        toggleMusic() {
+          this.musicMuted = !this.musicMuted;
+          saveMeta();
+          this.applyAudioState();
+          if (!this.musicMuted) document.getElementById("pb-bgm").play().catch(() => {});
         }
 
         playLaser(overdrive = false) {
@@ -2540,8 +2540,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           powers[key] = Math.max(0, Math.min(key === "way" ? 1 : 3, savedPowers[key] | 0));
         }
         sound.muted = storage.getItem(MUTE_KEY) === "true";
-        document.getElementById("pb-bgm").muted = sound.muted;
-        sound.syncIcon();
+        sound.musicMuted = sound.loadMusicState();
+        sound.applyAudioState();
         player.hp = maxHp();
         if (dashboardBestEl) dashboardBestEl.textContent = highScore.toLocaleString();
         if (typeof window.PB_refreshRank === "function") window.PB_refreshRank();
@@ -5239,7 +5239,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       btnMainMenu.addEventListener("click", returnToMainMenu);
       btnRetry.addEventListener("click", startNewGame);
       btnPause.addEventListener("click", togglePause);
-      btnMute.addEventListener("click", () => sound.toggleMute());
+      btnMusic.addEventListener("click", () => { sound.toggleMusic(); btnMusic.blur(); });
+      btnSfx.addEventListener("click", () => { sound.toggleSfx(); btnSfx.blur(); });
 
       // Initialize viewport & loop
       resizeCanvas();
