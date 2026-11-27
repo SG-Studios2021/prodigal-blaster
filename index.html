@@ -1904,7 +1904,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       let wings = 0;
       let runLevel = 0;                    // +1 for every boss beaten in this run
       try { wings = Math.max(0, Math.min(WINGS_MAX, parseInt(gameStorage().getItem(WINGS_KEY) || "0", 10) || 0)); } catch {}
-      const maxHp = () => PLAYER_MAX_HP + wings * 15 + runLevel * 10;
+      const maxHp = () => Math.round((PLAYER_MAX_HP + wings * 15 + runLevel * 10) * (addHealthByPrice ? curSkin().hp : 1));
       const dmgMult = () => 1 + wings * 0.1 + runLevel * 0.05;
 
       const META_KEY = "prodigal_blaster_meta_v1";
@@ -1917,18 +1917,19 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       // ---- Ship skins (prices are in coins; edit them here) ----
       window.PB_SKIN_IMGS.neon = window.PB_NEON_SHIP;
       const SKINS = [
-        { id: "neon", name: "Neon Blue", price: 0, dmg: 1, ult: 1, flames: true, flameX: 13, flameY: 22, shots: ["#38bdf8"], blurb: "Default ship · blue shots" },
-        { id: "blue", name: "Classic Blue", price: 50, dmg: 1.02, ult: 1, fixedPrice: true, flames: true, shots: ["#38bdf8"], blurb: "Classic blue shots" },
-        { id: "ph",   name: "Philippines",  price: 1000, dmg: 1.1, ult: 1.2, shots: ["#3b82f6", "#fbbf24", "#ef4444"], blurb: "Sun Burst [E]: golden ring of shots" },
-        { id: "usa",  name: "USA",          price: 1500, dmg: 1.15, ult: 1.35, shots: ["#ef4444", "#3b82f6", "#ffffff"], blurb: "Freedom Strike [E]: rapid fire + missiles" },
-        { id: "br",   name: "Brazil",       price: 2000, dmg: 1.2, ult: 1.5, shots: ["#22c55e", "#22c55e", "#facc15"], blurb: "Ordem e Progresso [E]: shield + clear bullets" },
-        { id: "hermes",  name: "Hermes",     price: 3000, dmg: 1.35, ult: 2, boss: true, thumb: "hermesFace",  shots: ["#ef4444", "#fca5a5"], blurb: "Wings of Ruin [E]: missile fan + cutscene" },
-        { id: "clark",   name: "Clark",      price: 3500, dmg: 1.4, ult: 2.2, boss: true, thumb: "clarkFace",   shots: ["#fbbf24", "#f97316"], blurb: "Solar Inferno [E]: sun beam + cutscene" },
-        { id: "jerecho", name: "Jerecho",    price: 3500, dmg: 1.4, ult: 2.2, boss: true, thumb: "jerechoFace", shots: ["#3b82f6", "#93c5fd"], blurb: "Absolute Zero [E]: freeze + cutscene" },
-        { id: "jian",    name: "Void Jian",  price: 5000, dmg: 1.7, ult: 3, boss: true, thumb: "jianEvo",     shots: ["#a855f7", "#e879f9"], blurb: "Void Collapse [E]: void blast + Void Pulse + strongest army" }
+        { id: "neon", name: "Neon Blue", price: 0, hp: 1, dmg: 1, ult: 1, flames: true, flameX: 13, flameY: 22, shots: ["#38bdf8"], blurb: "Default ship · blue shots" },
+        { id: "blue", name: "Classic Blue", price: 50, hp: 1.05, dmg: 1.02, ult: 1, fixedPrice: true, flames: true, shots: ["#38bdf8"], blurb: "Classic blue shots" },
+        { id: "ph",   name: "Philippines",  price: 1000, hp: 1.15, dmg: 1.1, ult: 1.2, shots: ["#3b82f6", "#fbbf24", "#ef4444"], blurb: "Sun Burst [E]: golden ring of shots" },
+        { id: "usa",  name: "USA",          price: 1500, hp: 1.2, dmg: 1.15, ult: 1.35, shots: ["#ef4444", "#3b82f6", "#ffffff"], blurb: "Freedom Strike [E]: rapid fire + missiles" },
+        { id: "br",   name: "Brazil",       price: 2000, hp: 1.3, dmg: 1.2, ult: 1.5, shots: ["#22c55e", "#22c55e", "#facc15"], blurb: "Ordem e Progresso [E]: shield + clear bullets" },
+        { id: "hermes",  name: "Hermes",     price: 3000, hp: 1.45, dmg: 1.35, ult: 2, boss: true, thumb: "hermesFace",  shots: ["#ef4444", "#fca5a5"], blurb: "Wings of Ruin [E]: missile fan + cutscene" },
+        { id: "clark",   name: "Clark",      price: 3500, hp: 1.55, dmg: 1.4, ult: 2.2, boss: true, thumb: "clarkFace",   shots: ["#fbbf24", "#f97316"], blurb: "Solar Inferno [E]: sun beam + cutscene" },
+        { id: "jerecho", name: "Jerecho",    price: 3500, hp: 1.55, dmg: 1.4, ult: 2.2, boss: true, thumb: "jerechoFace", shots: ["#3b82f6", "#93c5fd"], blurb: "Absolute Zero [E]: freeze + cutscene" },
+        { id: "jian",    name: "Void Jian",  price: 5000, hp: 1.8, dmg: 1.7, ult: 3, boss: true, thumb: "jianEvo",     shots: ["#a855f7", "#e879f9"], blurb: "Void Collapse [E]: void blast + Void Pulse + strongest army" }
       ];
-      // dmg = normal shot damage multiplier, ult = ultimate damage multiplier (edit them in the list above)
-      const multiplyShotDamage = false;    // <-- ON/OFF switch: true = skins multiply shot damage, false = all skins shoot ×1
+      // hp = max health multiplier, dmg = normal shot damage multiplier, ult = ultimate damage multiplier (edit them in the list above)
+      const multiplyShotDamage = true;    // <-- ON/OFF switch: true = skins multiply shot damage, false = all skins shoot ×1
+      const addHealthByPrice = true;      // <-- ON/OFF switch: true = skins multiply max health, false = all skins have ×1
       const ULT_BLAST = 100;              // base damage of an ultimate that hits every enemy
       const ultBoost = { shot: 0, missile: 0, laser: 0, mult: 1 };   // seconds left on each boosted attack
       const curSkin = () => skinById(equippedSkin) || SKINS[0];
@@ -2218,20 +2219,27 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         loadSkins(m);
       } catch {}
       function saveMeta() { try { saveGameItem(META_KEY, JSON.stringify({ coins, potions, jianKills, orbs: hasOrbs, skins: ownedSkins, skin: equippedSkin, musicOff: sound.musicMuted, autoShoot, mouseMove })); } catch {} refreshShop(); }
+      // switching ships keeps the same share of your health bar (so swapping can't be used to heal)
+      function wearSkin(id) {
+        const share = player.hp / maxHp();
+        equippedSkin = id;
+        player.hp = share * maxHp();
+        updateHud();
+      }
       function buySkin(id) {
         const s = skinById(id);
         if (!s || ownedSkins.includes(id) || coins < skinPrice(s)) return;
-        coins -= skinPrice(s); ownedSkins.push(id); equippedSkin = id; saveMeta();
+        coins -= skinPrice(s); ownedSkins.push(id); wearSkin(id); saveMeta();
         try { toast(s.name.toUpperCase() + " SKIN UNLOCKED!", "#fde68a", 1.6); } catch {}
         try { sound.playPowerup(); } catch {}
       }
       function equipSkin(id) {
         if (!ownedSkins.includes(id) || equippedSkin === id) return;
-        equippedSkin = id; saveMeta();
+        wearSkin(id); saveMeta();
       }
-      // the stat line on a shop card: "Damage" only appears while multiplyShotDamage is on
+      // the stat line on a shop card: "Health" and "Damage" only appear while their switches are on
       function skinStats(s) {
-        const parts = [multiplyShotDamage && "Damage ×" + s.dmg, ABILITIES[s.id] && "Ultimate ×" + s.ult].filter(Boolean);
+        const parts = [addHealthByPrice && "Health ×" + s.hp, multiplyShotDamage && "Damage ×" + s.dmg, ABILITIES[s.id] && "Ultimate ×" + s.ult].filter(Boolean);
         return parts.length ? `<span class="sk-ab">${parts.join(" · ")}</span>` : "";
       }
       function renderSkins(el) {
