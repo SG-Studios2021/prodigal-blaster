@@ -2229,6 +2229,11 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         if (!ownedSkins.includes(id) || equippedSkin === id) return;
         equippedSkin = id; saveMeta();
       }
+      // the stat line on a shop card: "Damage" only appears while multiplyShotDamage is on
+      function skinStats(s) {
+        const parts = [multiplyShotDamage && "Damage ×" + s.dmg, ABILITIES[s.id] && "Ultimate ×" + s.ult].filter(Boolean);
+        return parts.length ? `<span class="sk-ab">${parts.join(" · ")}</span>` : "";
+      }
       function renderSkins(el) {
         const sig = ownedSkins.join() + "|" + equippedSkin + "|" + SKINS.map((s) => (coins >= skinPrice(s) ? 1 : 0)).join("") + skinsAreFree();
         if (el.dataset.skinSig === sig) return;
@@ -2238,7 +2243,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           const btn = eq ? `<button type="button" class="sk-btn equipped" disabled>Equipped</button>`
             : owned ? `<button type="button" class="sk-btn" data-equip="${s.id}">Equip</button>`
             : `<button type="button" class="sk-btn buy" data-buy="${s.id}" ${coins < skinPrice(s) ? "disabled" : ""}>${skinPrice(s) ? skinPrice(s) + " coins" : "Free"}</button>`;
-          return `<div class="sk-card${eq ? " equipped" : ""}"><img class="${s.boss ? "face" : ""}" src="${skinThumb(s)}" alt=""><span class="sk-name">${s.name}</span><span class="sk-ab">${s.blurb}</span><span class="sk-ab">Damage ×${multiplyShotDamage ? s.dmg : 1}${ABILITIES[s.id] ? " · Ultimate ×" + s.ult : ""}</span>${btn}</div>`;
+          return `<div class="sk-card${eq ? " equipped" : ""}"><img class="${s.boss ? "face" : ""}" src="${skinThumb(s)}" alt=""><span class="sk-name">${s.name}</span><span class="sk-ab">${s.blurb}</span>${skinStats(s)}${btn}</div>`;
         }).join("");
       }
       function refreshShop() {
