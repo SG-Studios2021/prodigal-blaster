@@ -3246,7 +3246,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       function nextBoss() {
         if (twist.stage === "alone") return { kind: "crew", face: 0 };
         if (twist.stage === "endless") return endlessBoss();
-        const unrescued = hostageOrder.filter((i) => !rescued[i] && !twist.gone.includes(i));
+        const unrescued = hostageOrder.filter((i) => !rescued[i]);
         if (unrescued.length) return { kind: "hostage", face: unrescued[0] };
         if (!jianDown) return { kind: "jian", face: JIAN_FACE };
         if (hermesKills === 0) {
@@ -4016,7 +4016,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const monPImg = Object.assign(new Image(), { src: window.PB_ASSETS.monP });
       const monGImg = Object.assign(new Image(), { src: window.PB_ASSETS.monG });
       function resetTwist() {
-        Object.assign(twist, { stage: "none", gone: [], queue: [], nextVanish: 0, pending: null, pendingT: 0, bag: [], last: "", said: -1, live: null, fxT: 6 });
+        Object.assign(twist, { stage: "none", queue: [], nextVanish: 0, pending: null, pendingT: 0, bag: [], last: "", said: -1, live: null, fxT: 6 });
         monsterMode = false; fallenKills = 0; halvingSeen = false; eclipseCd = 0; eclipseFx = 0;
         fallenBlasts.length = 0;
       }
@@ -4075,7 +4075,6 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           rings.push({ x: c.x, y: c.y, r: 4, max: 150, c: "#ff1a2d" });
         }
         rescued[idx] = false;
-        if (!twist.gone.includes(idx)) twist.gone.push(idx);   // vanished for good: no hostage boss may offer them back
         updateTracker();
         flash = 0.5; screenShake = 10;
         playGrowl();
