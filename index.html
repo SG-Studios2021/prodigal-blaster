@@ -2184,8 +2184,11 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         ctx.fillStyle = "#fff"; ctx.fillText(speech.text, x, y + 1);
         ctx.restore();
       }
-      const FREE_SKINS_FOR_TESTING = true; // set to false to charge the real prices again
-      const skinPrice = (s) => (FREE_SKINS_FOR_TESTING && !s.fixedPrice ? 0 : s.price);
+      // Free skins: approved developers always get them. Set this to true to give EVERYONE free skins
+      // (for example while testers are playing), and back to false to charge normal prices again.
+      const FREE_SKINS_FOR_TESTING = false;
+      const skinsAreFree = () => FREE_SKINS_FOR_TESTING || window.PB_isDev === true;
+      const skinPrice = (s) => (skinsAreFree() && !s.fixedPrice ? 0 : s.price);
       const skinById = (id) => SKINS.find((s) => s.id === id);
       const skinImgs = {};
       SKINS.forEach((s) => { const im = new Image(); im.src = (window.PB_SKIN_IMGS || {})[s.id] || ""; skinImgs[s.id] = im; });
@@ -2215,7 +2218,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         equippedSkin = id; saveMeta();
       }
       function renderSkins(el) {
-        const sig = ownedSkins.join() + "|" + equippedSkin + "|" + SKINS.map((s) => (coins >= skinPrice(s) ? 1 : 0)).join("") + FREE_SKINS_FOR_TESTING;
+        const sig = ownedSkins.join() + "|" + equippedSkin + "|" + SKINS.map((s) => (coins >= skinPrice(s) ? 1 : 0)).join("") + skinsAreFree();
         if (el.dataset.skinSig === sig) return;
         el.dataset.skinSig = sig;
         el.querySelector(".sk-grid").innerHTML = SKINS.map((s) => {
@@ -2850,7 +2853,9 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         btnDevSkip.classList.toggle("hidden", !window.PB_isDev);
         btnDevSkip.textContent = "DEV · Skip to Stage " + DEV_SKIP_WAVE;
       }
-      window.PB_refreshDev = refreshDevUi;
+      // when sign-in finishes (or changes), the shop must re-price its skins
+      const onDevAccessChanged = () => { refreshDevUi(); try { refreshShop(); } catch {} };
+      window.PB_refreshDev = onDevAccessChanged;
       function devSkipToStage99() {
         if (!window.PB_isDev || gamePhase !== "paused") return;
         if (wave >= DEV_SKIP_WAVE) { btnDevSkip.textContent = "DEV · Already at stage " + wave; return; }
