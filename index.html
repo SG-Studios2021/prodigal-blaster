@@ -4422,7 +4422,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const blastClampX = (x, w) => Math.max(w / 2, Math.min(viewWidth - w / 2, x));
       // BOND SPRAY: the hostage boss's runaway fan (six pink shots aimed at you, every frame), now a real attack with a long cooldown.
       const SPRAY_STEP = 1 / 60, SPRAY_WIND = 0.8;
-      const sprayDuration = (fp) => 3.5 + fp * 0.5;                              // 4 / 4.5 / 5 seconds
+      const SPRAY_SECONDS = 15;                                                   // <-- how long the spray lasts (all phases). Edit this number.
+      const sprayDuration = (fp) => SPRAY_SECONDS;
       const sprayCooldown = (fp) => Math.max(20, 39 - fp * 5 - fallenKills);     // 34 / 29 / 24 seconds
       function sprayFan(en) {
         const aim = Math.atan2(player.y - en.y, player.x - en.x);
