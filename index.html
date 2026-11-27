@@ -4958,12 +4958,22 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           return saveAccountProfile(user);
         };
 
-        const loadGoogleAccountData = async (user, localSnapshot) => {
+        // Guest or other-account progress is NEVER copied into a Google account.
+        // The only local data ever kept is this same account's own unsynced progress.
+        const readOwnLocalData = () => {
+          const data = window.PB_getEmptyPlayerData();
+          for (const key of (window.PB_PLAYER_STORAGE_KEYS || [])) {
+            const value = readLocal(key);
+            if (typeof value === "string") data[key] = value;
+          }
+          return data;
+        };
+
+        const loadGoogleAccountData = async (user) => {
           const previousOwner = readLocal(LOCAL_ACCOUNT_OWNER_KEY);
-          const localIsTrusted = localSnapshot.wasTemporary || !previousOwner || previousOwner === user.uid;
-          const initialData = localIsTrusted ? localSnapshot.data : window.PB_getEmptyPlayerData();
-          // Progress made on this device that never reached the cloud (tab closed, offline...)
-          const localHasUnsynced = !localSnapshot.wasTemporary && previousOwner === user.uid && isDirty(user.uid);
+          // Progress made by THIS account on this device that never reached the cloud (tab closed, offline...)
+          const localHasUnsynced = previousOwner === user.uid && isDirty(user.uid);
+          const initialData = localHasUnsynced ? readOwnLocalData() : window.PB_getEmptyPlayerData();
 
           const profileSnapshot = await firestoreSdk.getDoc(accountProfileRef(user));
           if (!auth.currentUser || auth.currentUser.uid !== user.uid) return false;
@@ -4976,7 +4986,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             }
             playerData = profile.playerData;
           } else {
-            // New account, or this device is ahead of the cloud: upload local data.
+            // Brand-new account starts at zero; or this account's own unsynced progress is uploaded.
             playerData = initialData;
             await writeProfile(user, playerData);
             clearDirty(user.uid);
@@ -5003,11 +5013,6 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           startButton.disabled = !window.PB_canPlay;
           startButton.classList.toggle("hidden", !window.PB_canPlay);
           if (googleUser) {
-            // Snapshot guest/local progress once, before anything switches storage.
-            const localSnapshot = {
-              wasTemporary: Boolean(window.PB_temporarySession),
-              data: window.PB_getPlayerData()
-            };
             const name = googleDisplayName(user);
             accountTitle.textContent = "Welcome, " + name;
             accountDescription.textContent = "Loading your saved Google account data...";
@@ -5022,7 +5027,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
               let profileLoaded = false;
               for (let attempt = 0; ; attempt++) {
                 try {
-                  profileLoaded = await loadGoogleAccountData(user, localSnapshot);
+                  profileLoaded = await loadGoogleAccountData(user);
                   break;
                 } catch (error) {
                   if (attempt >= 2 || !isTransientError(error)) throw error;
@@ -5036,6 +5041,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
               try {
                 sessionStorage.removeItem(window.PB_GUEST_MODE_KEY);
                 sessionStorage.removeItem(window.PB_GUEST_NAME_KEY);
+                for (const key of (window.PB_PLAYER_STORAGE_KEYS || [])) sessionStorage.removeItem(key);
               } catch (error) {
                 console.error("Could not clear guest session marker", error);
               }
