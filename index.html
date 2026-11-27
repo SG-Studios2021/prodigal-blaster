@@ -3246,7 +3246,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       function nextBoss() {
         if (twist.stage === "alone") return { kind: "crew", face: 0 };
         if (twist.stage === "endless") return endlessBoss();
-        const unrescued = hostageOrder.filter((i) => !rescued[i]);
+        const unrescued = hostageOrder.filter((i) => !rescued[i] && !twist.gone.includes(i));
         if (unrescued.length) return { kind: "hostage", face: unrescued[0] };
         if (!jianDown) return { kind: "jian", face: JIAN_FACE };
         if (hermesKills === 0) {
@@ -4016,7 +4016,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const monPImg = Object.assign(new Image(), { src: window.PB_ASSETS.monP });
       const monGImg = Object.assign(new Image(), { src: window.PB_ASSETS.monG });
       function resetTwist() {
-        Object.assign(twist, { stage: "none", queue: [], nextVanish: 0, pending: null, pendingT: 0, bag: [], last: "", said: -1, live: null, fxT: 6 });
+        Object.assign(twist, { stage: "none", gone: [], queue: [], nextVanish: 0, pending: null, pendingT: 0, bag: [], last: "", said: -1, live: null, fxT: 6 });
         monsterMode = false; fallenKills = 0; halvingSeen = false; eclipseCd = 0; eclipseFx = 0;
         fallenBlasts.length = 0;
       }
@@ -4075,6 +4075,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           rings.push({ x: c.x, y: c.y, r: 4, max: 150, c: "#ff1a2d" });
         }
         rescued[idx] = false;
+        if (!twist.gone.includes(idx)) twist.gone.push(idx);   // vanished for good: no hostage boss may offer them back
         updateTracker();
         flash = 0.5; screenShake = 10;
         playGrowl();
@@ -4327,6 +4328,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         flash = 1; screenShake = 16;
         rings.push({ x: b.x, y: b.y, r: 10, max: Math.hypot(viewWidth, viewHeight), c: "#ffffff" });
         b.fireTimer = 2.2;
+        b.sprayT = 0; b.sprayWind = 0; b.sprayAcc = 0; b.sprayCd = Math.max(b.sprayCd || 0, 10);
         b.nextHalve = Math.min(b.nextHalve, elapsedTime + 9);
         startCutscene("crew", b.fp === 2 ? CREW_P2 : CREW_P3, () => {
           flash = 1; screenShake = 14;
@@ -4413,6 +4415,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const BLAST_WARN = 1.7, BLAST_FIRE = 0.85, BLAST_LOCK = 0.55;   // warning secs, beam secs, share of the warning spent tracking you
       const reducedMotionQ = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
       const blastClampX = (x, w) => Math.max(w / 2, Math.min(viewWidth - w / 2, x));
+      // BOND SPRAY: the hostage boss's runaway fan (six pink shots aimed at you, every frame), now a real attack with a long cooldown.
+      const SPRAY_STEP = 1 / 60, SPRAY_WIND = 0.8;
+      const sprayDuration = (fp) => 3.5 + fp * 0.5;                              // 4 / 4.5 / 5 seconds
+      const sprayCooldown = (fp) => Math.max(20, 39 - fp * 5 - fallenKills);     // 34 / 29 / 24 seconds
+      function sprayFan(en) {
+        const aim = Math.atan2(player.y - en.y, player.x - en.x);
+        for (let k = 0; k < 6; k++) bossShot(en, aim + (k - 2.5) * 0.26, 420, 15, "#fb7185");
+      }
       function castRedBlast(en) {
         const w = Math.max(120, Math.min(210, viewWidth * 0.2));
         fallenBlasts.push({ owner: en, x: blastClampX(player.x, w), w, t: 0, firing: false, hit: false });
@@ -4423,8 +4433,26 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       function updateFallenBlasts(dt) {
         for (const en of enemies) {
           if (en.type !== "boss" || en.kind !== "crew" || en.dead || !en.arrived) continue;
-          if (en.blastCd === undefined) en.blastCd = 5;
-          if (ultLock > 0 || fallenBlasts.some((b) => b.owner === en)) continue;
+          if (en.blastCd === undefined) { en.blastCd = 5; en.sprayCd = 14; en.sprayWind = 0; en.sprayT = 0; en.sprayAcc = 0; }
+          const fp = en.fp || 1, blastLive = fallenBlasts.some((b) => b.owner === en);
+          if (en.sprayWind > 0) {
+            en.sprayWind -= dt;
+            if (en.sprayWind <= 0) { en.sprayT = sprayDuration(fp); en.sprayAcc = 0; }
+          } else if (en.sprayT > 0) {
+            en.sprayT -= dt; en.sprayAcc += dt;
+            for (let n = 0; en.sprayAcc >= SPRAY_STEP && n < 4; n++) { en.sprayAcc -= SPRAY_STEP; sprayFan(en); }
+            if (en.sprayT <= 0) { en.sprayAcc = 0; en.sprayCd = sprayCooldown(fp); }
+          } else if (ultLock <= 0 && !blastLive) {
+            en.sprayCd -= dt;
+            if (en.sprayCd <= 0) {
+              en.sprayWind = SPRAY_WIND;
+              en.fireTimer = Math.max(en.fireTimer, SPRAY_WIND + sprayDuration(fp) + 0.7);   // its normal volleys pause while it sprays
+              toast("\u26A0 BOND SPRAY!", "#fb7185", 1.6);
+              screenShake = Math.max(screenShake, 6);
+              try { playGrowl(); } catch {}
+            }
+          }
+          if (ultLock > 0 || blastLive || en.sprayWind > 0 || en.sprayT > 0) continue;   // never stacks with the red blast
           en.blastCd -= dt;
           if (en.blastCd <= 0) {
             castRedBlast(en);
