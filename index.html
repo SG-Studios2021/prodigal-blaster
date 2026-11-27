@@ -4424,6 +4424,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const SPRAY_STEP = 1 / 60, SPRAY_WIND = 0.8;
       const SPRAY_SECONDS = 15;                                                   // <-- how long the spray lasts (all phases). Edit this number.
       const sprayDuration = (fp) => SPRAY_SECONDS;
+      const SPRAY_FIRST_DELAY = 3;                                                // <-- seconds after the Fallen arrives before its FIRST spray. Edit this number.
       const SPRAY_COOLDOWN = 30;                                                  // <-- seconds between sprays (all phases). Edit this number.
       const sprayCooldown = (fp) => SPRAY_COOLDOWN;
       function sprayFan(en) {
@@ -4440,7 +4441,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       function updateFallenBlasts(dt) {
         for (const en of enemies) {
           if (en.type !== "boss" || en.kind !== "crew" || en.dead || !en.arrived) continue;
-          if (en.blastCd === undefined) { en.blastCd = 5; en.sprayCd = 14; en.sprayWind = 0; en.sprayT = 0; en.sprayAcc = 0; }
+          if (en.blastCd === undefined) { en.blastCd = 5; en.sprayCd = SPRAY_FIRST_DELAY; en.sprayWind = 0; en.sprayT = 0; en.sprayAcc = 0; }
           const fp = en.fp || 1, blastLive = fallenBlasts.some((b) => b.owner === en);
           if (en.sprayWind > 0) {
             en.sprayWind -= dt;
