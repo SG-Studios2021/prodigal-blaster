@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete Account · Prodigal$ Blaster</title>
+<style>
+  body { margin:0; background:#08080f; color:#cbd5e1; font:16px/1.65 system-ui,sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { color:#fff; line-height:1.25; } h2 { color:#7dd3fc; font-size:18px; margin-top:30px; }
+  a { color:#7dd3fc; }
+  button { font:700 15px system-ui,sans-serif; padding:13px 20px; border-radius:12px; border:1px solid #7dd3fc; background:#0f172a; color:#fff; cursor:pointer; margin:6px 0; }
+  button.danger { border-color:#f87171; background:#7f1d1d; } button:disabled { opacity:.4; cursor:default; }
+  .hidden { display:none; } #status { font-weight:700; color:#fde68a; }
+</style>
+</head>
+<body>
+<main>
+<p><a href="index.html">&larr; Back to game</a></p>
+<h1>Delete Account</h1>
+<p>Use this page to permanently delete your <strong>Prodigal$ Blaster</strong> account (developer: Prodigal$ Brothers).</p>
+<h2>What gets deleted</h2>
+<ul><li>Your cloud save: coins, items, skins, powers and progress</li><li>Your leaderboard name and score</li><li>Your sign-in account and the game data saved in this browser</li></ul>
+<p>Deletion happens right away and cannot be undone. Copies in Google's backup systems are removed according to Google's schedules.</p>
+<h2>Delete now</h2>
+<p id="status" role="status">Loading...</p>
+<button id="signin" class="hidden" type="button">Sign in with Google</button>
+<div id="confirm" class="hidden">
+  <p><label><input id="agree" type="checkbox"> I understand this cannot be undone.</label></p>
+  <button id="delete" class="danger" type="button" disabled>Delete my account and data</button>
+  <button id="other" type="button">Use another account</button>
+</div>
+<h2>Can't sign in?</h2>
+<p>Email <strong>talomomobilesound@gmail.com</strong> from your account's email address with the subject "Delete my Prodigal$ Blaster account". Guest players should include their guest name and score. We aim to complete requests within 30 days.</p>
+<hr style="border-color:#1e293b;margin-top:36px">
+<p><a href="terms.html">Terms of Service</a> · <a href="privacy.html">Privacy Policy</a> · <a href="delete-account.html">Delete Account</a></p>
+</main>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const say = (t) => { $("status").textContent = t; };
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("timed out")), ms))]);
+try {
+  const base = "https://www.gstatic.com/firebasejs/13.4.0/";
+  const [appSdk, A, F] = await withTimeout(Promise.all(["firebase-app.js", "firebase-auth.js", "firebase-firestore.js"].map((f) => import(base + f))), 20000);
+  const app = appSdk.initializeApp({
+          apiKey: "AIzaSyBLQNCSdlIzAW5q9GN57kDHtmJsvKtEX2o",
+          authDomain: "prodigal-runner.firebaseapp.com",
+          projectId: "prodigal-runner",
+          appId: "1:238978847862:web:adf54c221f2a41ec5fbb57"
+  });
+  const auth = A.getAuth(app), db = F.getFirestore(app);
+  const provider = new A.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  let busy = false, done = false;
+  const fail = (e) => say("That did not work (" + (e.code || e.message) + "). Try Chrome or Safari, or email us.");
+  A.onAuthStateChanged(auth, (user) => {
+    if (busy || done) return;
+    $("signin").classList.toggle("hidden", !!user);
+    $("confirm").classList.toggle("hidden", !user);
+    $("agree").checked = false; $("delete").disabled = true;
+    say(user ? "Account: " + (user.isAnonymous ? "guest account on this device" : user.email || user.displayName) : "Sign in with the account you want to delete.");
+  });
+  $("signin").onclick = () => A.signInWithPopup(auth, provider).catch(fail);
+  $("other").onclick = () => A.signOut(auth).catch(fail);
+  $("agree").onchange = () => { $("delete").disabled = !$("agree").checked; };
+  $("delete").onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    busy = true; $("delete").disabled = true;
+    try {
+      const age = Date.now() - Date.parse(user.metadata.lastSignInTime);
+      if (!user.isAnonymous && !(age < 4 * 60 * 1000)) await A.reauthenticateWithPopup(user, provider);
+      say("Deleting...");
+      const batch = F.writeBatch(db);
+      batch.delete(F.doc(db, "playerProfiles", user.uid));
+      batch.delete(F.doc(db, "blasterLeaderboard", user.uid));
+      await withTimeout(batch.commit(), 20000);
+      for (const store of [localStorage, sessionStorage]) {
+        try { for (const k of Object.keys(store)) if (k.startsWith("prodigal_blaster_")) store.removeItem(k); } catch {}
+      }
+      try { await A.deleteUser(user); } catch (e) { if (!user.isAnonymous) throw e; await A.signOut(auth); }
+      done = true;
+      $("confirm").classList.add("hidden");
+      say("Done. Your account and game data have been deleted.");
+    } catch (e) {
+      fail(e); $("delete").disabled = false;
+    } finally { busy = false; }
+  };
+} catch (e) {
+  say("Could not load the sign-in service. Check your connection and reload, or email us.");
+}
+</script>
+</body>
+</html>
