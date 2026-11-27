@@ -4727,6 +4727,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           projectId: "prodigal-runner",
           appId: "1:238978847862:web:adf54c221f2a41ec5fbb57"
         });
+        // Separate collection so this game never mixes scores with the running game.
+        const BLASTER_LEADERBOARD = "blasterLeaderboard";
         const auth = firebaseAuthSdk.getAuth(firebaseApp);
         // Auto-detect long polling avoids "client is offline" failures behind
         // proxies, WebViews and some mobile networks.
@@ -4770,7 +4772,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         };
 
         const scoresQuery = firestoreSdk.query(
-          firestoreSdk.collection(db, "leaderboard"),
+          firestoreSdk.collection(db, BLASTER_LEADERBOARD),
           firestoreSdk.orderBy("score", "desc"),
           firestoreSdk.limit(10)
         );
@@ -4884,7 +4886,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           }
 
           setMessage("Submitting your score...");
-          const scoreRef = firestoreSdk.doc(db, "leaderboard", user.uid);
+          const scoreRef = firestoreSdk.doc(db, BLASTER_LEADERBOARD, user.uid);
           try {
             const isNewBest = await firestoreSdk.runTransaction(db, async (transaction) => {
               const existing = await transaction.get(scoreRef);
@@ -4906,7 +4908,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         };
 
         const syncLeaderboardBest = async (user, displayName) => {
-          const scoreRef = firestoreSdk.doc(db, "leaderboard", user.uid);
+          const scoreRef = firestoreSdk.doc(db, BLASTER_LEADERBOARD, user.uid);
           const localBest = window.PB_getPersonalBest();
           if (!Number.isSafeInteger(localBest) || localBest < 0) {
             setMessage("Could not sync an invalid personal best.", "error");
