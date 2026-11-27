@@ -4424,7 +4424,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const SPRAY_STEP = 1 / 60, SPRAY_WIND = 0.8;
       const SPRAY_SECONDS = 15;                                                   // <-- how long the spray lasts (all phases). Edit this number.
       const sprayDuration = (fp) => SPRAY_SECONDS;
-      const sprayCooldown = (fp) => Math.max(20, 39 - fp * 5 - fallenKills);     // 34 / 29 / 24 seconds
+      const SPRAY_COOLDOWN = 30;                                                  // <-- seconds between sprays (all phases). Edit this number.
+      const sprayCooldown = (fp) => SPRAY_COOLDOWN;
       function sprayFan(en) {
         const aim = Math.atan2(player.y - en.y, player.x - en.x);
         for (let k = 0; k < 6; k++) bossShot(en, aim + (k - 2.5) * 0.26, 420, 15, "#fb7185");
