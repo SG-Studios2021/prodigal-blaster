@@ -313,27 +313,57 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
 
     /* ---- Player name plate (HUD) ---- */
-    .hud-player { display: flex; align-items: center; gap: 9px; padding-bottom: 8px; margin-bottom: 1px; border-bottom: 1px solid rgba(125,211,252,.18); }
+    .hud-player { --rk: #94a3b8; --rk2: #e2e8f0; --rk-glow: rgba(148,163,184,.5);
+      display: flex; align-items: center; gap: 9px; padding-bottom: 8px; margin-bottom: 1px; border-bottom: 1px solid var(--rk-glow); }
     .hud-player.hidden { display: none; }
+    .hud-player[data-rank="0"] { --rk: #94a3b8; --rk2: #e2e8f0; --rk-glow: rgba(148,163,184,.45); }
+    .hud-player[data-rank="1"] { --rk: #4ade80; --rk2: #dcfce7; --rk-glow: rgba(74,222,128,.5); }
+    .hud-player[data-rank="2"] { --rk: #22d3ee; --rk2: #cffafe; --rk-glow: rgba(34,211,238,.55); }
+    .hud-player[data-rank="3"] { --rk: #a78bfa; --rk2: #ede9fe; --rk-glow: rgba(167,139,250,.55); }
+    .hud-player[data-rank="4"] { --rk: #fb923c; --rk2: #ffedd5; --rk-glow: rgba(251,146,60,.6); }
+    .hud-player[data-rank="5"] { --rk: #f43f5e; --rk2: #ffe4e6; --rk-glow: rgba(244,63,94,.65); }
+    .hud-player[data-rank="6"] { --rk: #fbbf24; --rk2: #fffbeb; --rk-glow: rgba(251,191,36,.75); }
+    .hud-player[data-rank="7"] { --rk: #e879f9; --rk2: #fae8ff; --rk-glow: rgba(232,121,249,.7); }
+    .hud-player[data-rank="8"] { --rk: #818cf8; --rk2: #e0e7ff; --rk-glow: rgba(129,140,248,.8); }
+    .hud-player[data-rank="9"], .hud-player[data-rank="10"] { --rk: #38bdf8; --rk2: #ffffff; --rk-glow: rgba(244,114,182,.8); }
+    .hud-player[data-rank="9"] .hud-avatar, .hud-player[data-rank="10"] .hud-avatar { background: conic-gradient(from 0deg, #ef4444, #f59e0b, #fde047, #22c55e, #06b6d4, #6366f1, #d946ef, #ef4444); }
+    .hud-player[data-rank="10"] .hud-avatar { box-shadow: 0 0 22px rgba(253,224,71,.9), 0 0 8px #fff; }
+    .hud-player[data-rank="9"] .hud-player-name, .hud-player[data-rank="10"] .hud-player-name,
+    .hud-player[data-rank="9"] .hud-player-tag, .hud-player[data-rank="10"] .hud-player-tag {
+      background-image: linear-gradient(100deg, #ef4444, #f59e0b, #fde047, #22c55e, #06b6d4, #6366f1, #d946ef, #ef4444); background-size: 300% 100%;
+      -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; animation: hudNameShimmer 3s linear infinite; }
+    .hud-player[data-rank="7"] .hud-player-tag, .hud-player[data-rank="8"] .hud-player-tag { animation: hudTagPulse 1.8s ease-in-out infinite; }
+    .hud-avatar-wrap { position: relative; flex: none; }
+    .hud-player.has-crown { padding-top: 8px; }
+    .hud-crown { position: absolute; top: -12px; left: 50%; z-index: 2; width: 22px; height: 18px; pointer-events: none;
+      transform: translateX(-50%) rotate(-14deg); filter: drop-shadow(0 0 5px var(--crown-glow)); animation: hudCrownFloat 2.4s ease-in-out infinite; }
+    .hud-crown[hidden] { display: none; }
+    .hud-crown[data-pos="1"] { --crown: #fbbf24; --crown-dark: #b45309; --crown-glow: rgba(251,191,36,.95); animation: hudCrownFloat 2.4s ease-in-out infinite, hudCrownGlow 1.5s ease-in-out infinite; }
+    .hud-crown[data-pos="2"] { --crown: #e5e7eb; --crown-dark: #6b7280; --crown-glow: rgba(229,231,235,.8); }
+    .hud-crown[data-pos="3"] { --crown: #d9822b; --crown-dark: #6b3410; --crown-glow: rgba(217,130,43,.8); }
+    .hud-crown[data-pos="4"], .hud-crown[data-pos="5"] { --crown: #60a5fa; --crown-dark: #1e3a8a; --crown-glow: rgba(96,165,250,.8); }
+    @keyframes hudCrownFloat { 0%, 100% { transform: translateX(-50%) rotate(-14deg) translateY(0); } 50% { transform: translateX(-50%) rotate(-14deg) translateY(-2px); } }
+    @keyframes hudCrownGlow { 0%, 100% { filter: drop-shadow(0 0 4px var(--crown-glow)); } 50% { filter: drop-shadow(0 0 11px var(--crown-glow)) brightness(1.25); } }
     .hud-avatar { position: relative; flex: none; width: 34px; height: 34px; border-radius: 50%; padding: 2px;
-      background: conic-gradient(from 0deg, #38bdf8, #a78bfa, #f472b6, #fbbf24, #38bdf8); animation: hudRingSpin 5s linear infinite;
-      box-shadow: 0 0 14px rgba(56,189,248,.55); }
-    .hud-avatar.guest { background: conic-gradient(from 0deg, #94a3b8, #e2e8f0, #64748b, #cbd5e1, #94a3b8); box-shadow: 0 0 10px rgba(148,163,184,.4); }
+      background: conic-gradient(from 0deg, var(--rk), var(--rk2), var(--rk), var(--rk2), var(--rk)); animation: hudRingSpin 5s linear infinite;
+      box-shadow: 0 0 14px var(--rk-glow); }
     .hud-avatar-inner { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
-      background: #0b1224; color: #e0f2fe; font-weight: 900; font-size: 14px; }
+      background: #0b1224; color: #e0f2fe; font-weight: 900; font-size: 14px; animation: hudRingSpinBack 5s linear infinite; }
     .hud-avatar-inner img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .hud-player-text { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
     .hud-player-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 900; letter-spacing: .02em;
-      background: linear-gradient(100deg, #e0f2fe 0%, #38bdf8 25%, #c4b5fd 50%, #38bdf8 75%, #e0f2fe 100%); background-size: 250% 100%;
+      background: linear-gradient(100deg, var(--rk2) 0%, var(--rk) 25%, #ffffff 50%, var(--rk) 75%, var(--rk2) 100%); background-size: 250% 100%;
       -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
-      animation: hudNameShimmer 3.6s linear infinite; filter: drop-shadow(0 0 6px rgba(56,189,248,.45)); }
-    .hud-player-tag { font-size: 8.5px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: #7dd3fc; opacity: .9; }
-    .hud-player-tag.guest { color: #cbd5e1; }
+      animation: hudNameShimmer 3.6s linear infinite; filter: drop-shadow(0 0 6px var(--rk-glow)); }
+    .hud-player-tag { font-size: 9px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; color: var(--rk); text-shadow: 0 0 8px var(--rk-glow); }
+    .hud-player[data-rank="6"] .hud-player-tag, .hud-player[data-rank="5"] .hud-player-tag { animation: hudTagPulse 1.8s ease-in-out infinite; }
+    .hud-player.rank-up { animation: hudRankUp 1.4s ease-out 1; }
     @keyframes hudRingSpin { to { transform: rotate(360deg); } }
-    @keyframes hudNameShimmer { to { background-position: -250% 0; } }
-    .hud-avatar-inner { animation: hudRingSpinBack 5s linear infinite; }
     @keyframes hudRingSpinBack { to { transform: rotate(-360deg); } }
-    @media (prefers-reduced-motion: reduce) { .hud-avatar, .hud-avatar-inner, .hud-player-name { animation: none; } }
+    @keyframes hudNameShimmer { to { background-position: -250% 0; } }
+    @keyframes hudTagPulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+    @keyframes hudRankUp { 0% { filter: brightness(2.2) drop-shadow(0 0 14px var(--rk)); transform: scale(1.06); } 100% { filter: none; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .hud-avatar, .hud-avatar-inner, .hud-player-name, .hud-player-tag, .hud-player.rank-up, .hud-crown { animation: none !important; } }
     #wasd-hint { position: fixed; left: 16px; bottom: 14px; z-index: 40; display: none; align-items: center; gap: 8px; pointer-events: none;
       font: 900 12px Inter, sans-serif; letter-spacing: .14em; color: #e2e8f0; text-shadow: 0 0 8px #000; }
     #wasd-hint.on { display: flex; }
@@ -1525,8 +1555,11 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       <!-- Left: Score, High Score, Wave & Hull Integrity -->
       <div class="glass-card rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col gap-1.5 min-w-[168px] sm:min-w-[215px]">
         <div id="hud-player" class="hud-player hidden">
-          <div id="hud-avatar" class="hud-avatar"><div class="hud-avatar-inner"><img id="hud-avatar-img" alt="" referrerpolicy="no-referrer" hidden><span id="hud-avatar-initial">?</span></div></div>
-          <div class="hud-player-text"><span id="hud-player-name" class="hud-player-name">Pilot</span><span id="hud-player-tag" class="hud-player-tag">Pilot</span></div>
+          <div class="hud-avatar-wrap">
+            <div id="hud-avatar" class="hud-avatar"><div class="hud-avatar-inner"><img id="hud-avatar-img" alt="" referrerpolicy="no-referrer" hidden><span id="hud-avatar-initial">?</span></div></div>
+            <svg id="hud-crown" class="hud-crown" viewBox="0 0 24 20" hidden aria-hidden="true"><path d="M2 17 L1.5 5 L7.5 10 L12 2 L16.5 10 L22.5 5 L22 17 Z" style="fill:var(--crown)" stroke-width="1.2" stroke-linejoin="round" /><path d="M2 17 L1.5 5 L7.5 10 L12 2 L16.5 10 L22.5 5 L22 17 Z" fill="none" style="stroke:var(--crown-dark)" stroke-width="1.2" stroke-linejoin="round" /><rect x="2" y="17" width="20" height="2.6" rx="1" style="fill:var(--crown-dark)" /><circle cx="12" cy="2.4" r="1.4" fill="#fff" /><circle cx="1.8" cy="5" r="1.2" fill="#fff" /><circle cx="22.2" cy="5" r="1.2" fill="#fff" /></svg>
+          </div>
+          <div class="hud-player-text"><span id="hud-player-name" class="hud-player-name">Pilot</span><span id="hud-player-tag" class="hud-player-tag">Beginner Prodigal</span></div>
         </div>
         <div class="flex items-baseline justify-between gap-3">
           <span class="text-[10px] sm:text-[11px] font-extrabold tracking-widest uppercase text-sky-400">Score</span>
@@ -2162,6 +2195,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         sound.syncIcon();
         player.hp = maxHp();
         if (dashboardBestEl) dashboardBestEl.textContent = highScore.toLocaleString();
+        if (typeof window.PB_refreshRank === "function") window.PB_refreshRank();
         refreshShop();
         updateWingsLabel();
         updateHud();
@@ -2224,6 +2258,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       }
 
       function saveHighScore(val) {
+        try { if (typeof window.PB_refreshRank === "function") window.PB_refreshRank(); } catch {}
         try {
           saveGameItem(HIGH_SCORE_KEY, String(val));
         } catch {
@@ -4601,15 +4636,52 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         name: document.getElementById("hud-player-name"),
         tag: document.getElementById("hud-player-tag")
       };
+      // Rank titles are based on the player's personal best score.
+      const RANKS = [
+        { min: 0, title: "Beginner Prodigal" },
+        { min: 1000, title: "Experienced Prodigal" },
+        { min: 5000, title: "Veteran Prodigal" },
+        { min: 10000, title: "Professional Prodigal" },
+        { min: 25000, title: "Exceptional Prodigal" },
+        { min: 50000, title: "Mythic Prodigal" },
+        { min: 100000, title: "Legendary Prodigal" },
+        { min: 200000, title: "Immortal Prodigal" },
+        { min: 400000, title: "Celestial Prodigal" },
+        { min: 700000, title: "Transcendent Prodigal" },
+        { min: 1000000, title: "Eternal Prodigal" }
+      ];
+      const crownEl = document.getElementById("hud-crown");
+      // position: 1..5 = rank on the global leaderboard, anything else hides the crown
+      window.PB_setCrown = (position) => {
+        if (!crownEl || !playerPlate.root) return;
+        const on = Number.isInteger(position) && position >= 1 && position <= 5;
+        crownEl.hidden = !on;
+        playerPlate.root.classList.toggle("has-crown", on);
+        if (on) crownEl.dataset.pos = String(position);
+      };
+      let lastRankIndex = null;
+      window.PB_refreshRank = () => {
+        if (!playerPlate.root) return;
+        let best = 0;
+        try { best = Number(window.PB_getPersonalBest ? window.PB_getPersonalBest() : 0) || 0; } catch (error) { best = 0; }
+        let index = 0;
+        for (let i = 0; i < RANKS.length; i++) if (best >= RANKS[i].min) index = i;
+        playerPlate.root.dataset.rank = String(index);
+        playerPlate.tag.textContent = RANKS[index].title;
+        if (lastRankIndex !== null && index > lastRankIndex && !playerPlate.root.classList.contains("hidden")) {
+          playerPlate.root.classList.remove("rank-up");
+          void playerPlate.root.offsetWidth;
+          playerPlate.root.classList.add("rank-up");
+        }
+        lastRankIndex = index;
+      };
       // kind: "google" | "guest" | null (hide)
       const setPlayerPlate = (kind, name, photoURL) => {
         if (!playerPlate.root) return;
         if (!kind) { playerPlate.root.classList.add("hidden"); return; }
         const isGuestPlate = kind === "guest";
         playerPlate.root.classList.remove("hidden");
-        playerPlate.avatar.classList.toggle("guest", isGuestPlate);
-        playerPlate.tag.classList.toggle("guest", isGuestPlate);
-        playerPlate.tag.textContent = isGuestPlate ? "Guest prodigal" : "Google pilot";
+        window.PB_refreshRank();
         playerPlate.name.textContent = name;
         playerPlate.initial.textContent = (Array.from(name.trim())[0] || "?").toUpperCase();
         playerPlate.img.hidden = true;
@@ -4741,8 +4813,17 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         const googleProvider = new firebaseAuthSdk.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: "select_account" });
 
+        let leaderboardTopIds = [];
+        const updateCrown = () => {
+          const user = auth.currentUser;
+          const index = user ? leaderboardTopIds.indexOf(user.uid) : -1;
+          window.PB_setCrown(index >= 0 && index < 5 ? index + 1 : null);
+        };
+
         const renderLeaderboard = (snapshot) => {
           leaderboardList.replaceChildren();
+          leaderboardTopIds = snapshot.docs.map((scoreDoc) => scoreDoc.id);
+          updateCrown();
           if (snapshot.empty) {
             setLeaderboardMessage("No scores yet", "Finish a mission to claim the first spot.", "Online");
             return;
@@ -5071,6 +5152,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           const anonymousGuest = Boolean(user && user.isAnonymous && guestName);
           window.PB_isAuthenticated = googleUser;
           window.PB_canSubmitScore = googleUser || anonymousGuest;
+          updateCrown();
           window.PB_isGuest = isGuest;
           window.PB_accountDataLoaded = false;
           window.PB_canPlay = !googleUser && isGuest;
