@@ -492,6 +492,11 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
     @keyframes fallenShake { 0%, 100% { translate: 0 0; } 25% { translate: 1px -1px; } 75% { translate: -1px 1px; } }
     @media (orientation: portrait) { #overlay-hermes.fallen #hermes-art { height: 66%; object-fit: contain; object-position: center; } }
     @media (prefers-reduced-motion: reduce) { #overlay-hermes.fallen #hermes-art, #overlay-hermes.fallen #hermes-line { animation: none; } }
+    #overlay-hermes.flag { background: radial-gradient(circle at 50% 30%, #1e293b, #030712 75%); }
+    #overlay-hermes.flag #hermes-art { inset: 7% 6% auto; width: 88%; height: 46%; object-position: center; filter: drop-shadow(0 12px 28px rgba(0,0,0,.7)); animation: flagWave 3s ease-in-out infinite alternate; }
+    #overlay-hermes.flag #hermes-line { color: #f8fafc; }
+    @keyframes flagWave { from { transform: perspective(700px) rotateY(-10deg) skewY(-1.5deg); } to { transform: perspective(700px) rotateY(10deg) skewY(1.5deg); } }
+    @media (prefers-reduced-motion: reduce) { #overlay-hermes.flag #hermes-art { animation: none; } }
     .audio-toggle[aria-pressed="true"] { border-color: #38bdf8; color: #e0f2fe; }
     .audio-toggle[aria-pressed="false"] { opacity: .55; text-decoration: line-through; }
     @media (pointer: coarse) { #btn-autoshoot, .mouse-only { display: none; } }
@@ -1919,9 +1924,9 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const SKINS = [
         { id: "neon", name: "Neon Blue", price: 0, hp: 1, dmg: 1, ult: 1, flames: true, flameX: 13, flameY: 22, shots: ["#38bdf8"], blurb: "Default ship · blue shots" },
         { id: "blue", name: "Classic Blue", price: 50, hp: 1.05, dmg: 1.02, ult: 1, fixedPrice: true, flames: true, shots: ["#38bdf8"], blurb: "Classic blue shots" },
-        { id: "ph",   name: "Philippines",  price: 1000, hp: 1.15, dmg: 1.1, ult: 1.2, shots: ["#3b82f6", "#fbbf24", "#ef4444"], blurb: "Sun Burst [E]: golden ring of shots" },
-        { id: "usa",  name: "USA",          price: 1500, hp: 1.2, dmg: 1.15, ult: 1.35, shots: ["#ef4444", "#3b82f6", "#ffffff"], blurb: "Freedom Strike [E]: rapid fire + missiles" },
-        { id: "br",   name: "Brazil",       price: 2000, hp: 1.3, dmg: 1.2, ult: 1.5, shots: ["#22c55e", "#22c55e", "#facc15"], blurb: "Ordem e Progresso [E]: shield + clear bullets" },
+        { id: "ph",   name: "Philippines",  price: 1000, hp: 1.15, dmg: 1.1, ult: 1.2, shots: ["#3b82f6", "#fbbf24", "#ef4444"], blurb: "Sun Burst [E]: 3 golden rings of shots + cutscene" },
+        { id: "usa",  name: "USA",          price: 1500, hp: 1.2, dmg: 1.15, ult: 1.35, shots: ["#ef4444", "#3b82f6", "#ffffff"], blurb: "Freedom Strike [E]: rapid fire + missiles + cutscene" },
+        { id: "br",   name: "Brazil",       price: 2000, hp: 1.3, dmg: 1.2, ult: 1.5, shots: ["#22c55e", "#22c55e", "#facc15"], blurb: "Ordem e Progresso [E]: shield + clear bullets + slow" },
         { id: "hermes",  name: "Hermes",     price: 3000, hp: 1.45, dmg: 1.35, ult: 2, boss: true, thumb: "hermesFace",  shots: ["#ef4444", "#fca5a5"], blurb: "Wings of Ruin [E]: missile fan + cutscene" },
         { id: "clark",   name: "Clark",      price: 3500, hp: 1.55, dmg: 1.4, ult: 2.2, boss: true, thumb: "clarkFace",   shots: ["#fbbf24", "#f97316"], blurb: "Solar Inferno [E]: sun beam + cutscene" },
         { id: "jerecho", name: "Jerecho",    price: 3500, hp: 1.55, dmg: 1.4, ult: 2.2, boss: true, thumb: "jerechoFace", shots: ["#3b82f6", "#93c5fd"], blurb: "Absolute Zero [E]: freeze + cutscene" },
@@ -2049,17 +2054,49 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           ctx.restore();
         }
       }
+      // ---- Country flags for the ultimate cutscenes (drawn in code) ----
+      const flagStar = (x, y, r, fill, rot = 0) => `<polygon fill="${fill}" points="${Array.from({ length: 10 }, (_, i) => {
+        const a = rot - Math.PI / 2 + (i * Math.PI) / 5, d = i % 2 ? r * 0.382 : r;
+        return (x + Math.cos(a) * d).toFixed(1) + "," + (y + Math.sin(a) * d).toFixed(1);
+      }).join(" ")}"/>`;
+      const flagSvg = (w, h, body) => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`);
+      const FLAGS = {
+        ph: flagSvg(900, 450, `<path fill="#0038a8" d="M0 0H900V225H0z"/><path fill="#ce1126" d="M0 225H900V450H0z"/><path fill="#fff" d="M0 0L389.7 225L0 450z"/>` +
+          Array.from({ length: 8 }, (_, i) => `<path fill="#fcd116" transform="rotate(${i * 45} 130 225)" d="M121 190L124 140L130 183L136 140L139 190zM127 183L130 128L133 183z"/>`).join("") +
+          `<circle cx="130" cy="225" r="42" fill="#fcd116"/>` + flagStar(34, 52, 22, "#fcd116", -0.5) + flagStar(34, 398, 22, "#fcd116", 0.5) + flagStar(338, 225, 22, "#fcd116", Math.PI / 2)),
+        usa: flagSvg(1900, 1000, `<path fill="#fff" d="M0 0H1900V1000H0z"/>` +
+          Array.from({ length: 7 }, (_, i) => `<rect fill="#b22234" y="${(i * 2000) / 13}" width="1900" height="${1000 / 13}"/>`).join("") +
+          `<rect fill="#3c3b6e" width="760" height="${7000 / 13}"/>` +
+          Array.from({ length: 9 }, (_, r) => Array.from({ length: r % 2 ? 5 : 6 }, (_, c) => flagStar(63.3 * (c * 2 + 1 + (r % 2)), 53.85 * (r + 1), 31, "#fff")).join("")).join("")),
+        br: flagSvg(1000, 700, `<path fill="#009c3b" d="M0 0H1000V700H0z"/><path fill="#ffdf00" d="M85 350L500 85L915 350L500 615z"/><circle cx="500" cy="350" r="175" fill="#002776"/>` +
+          `<path id="band" fill="none" stroke="#fff" stroke-width="34" d="M329 312Q510 270 668 420"/><text fill="#009c3b" font-family="Arial, sans-serif" font-weight="bold" font-size="25" dy="9"><textPath href="#band" startOffset="50%" text-anchor="middle">ORDEM E PROGRESSO</textPath></text>` +
+          [[560, 270], [390, 390], [425, 425], [455, 395], [480, 455], [500, 410], [520, 480], [545, 445], [570, 500], [590, 455], [615, 475], [470, 495], [380, 440], [500, 375], [440, 470], [535, 410]].map(([x, y], i) => flagStar(x, y, i % 3 ? 7 : 11, "#fff")).join(""))
+      };
       const ABILITIES = {
-        ph: { name: "SUN BURST", line: "Laban Pilipinas!", color: "#fbbf24", run() {
-          const cols = ["#fbbf24", "#ef4444", "#3b82f6"];
-          for (let i = 0; i < 32; i++) {
-            const a = (i / 32) * Math.PI * 2;
-            bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 560, vy: Math.sin(a) * 560, radius: 6, damage: 30 * curSkin().ult, color: cols[i % 3] });
-          }
-          rings.push({ x: player.x, y: player.y, r: 10, max: 320, c: "#fbbf24" });
-          player.invulnTimer = Math.max(player.invulnTimer, 0.6);
-        } },
-        usa: { name: "FREEDOM STRIKE", line: "Land of the free! Fire at will!", color: "#60a5fa", run() {
+        ph: { name: "SUN BURST x3", line: "Laban Pilipinas!", color: "#fbbf24",
+          scene: { who: "ph", flag: true, title: "PHILIPPINES", art: () => FLAGS.ph, lines: [
+            "Kabayan, stand tall. Courage means moving forward even when you are afraid.",
+            "Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest. (Joshua 1:9, KJV)",
+            "May pananampalataya, may tapang! JESUS CHRIST IS LORD! \u2764"] },
+          run() {
+            const cols = ["#fbbf24", "#ef4444", "#3b82f6"], power = curSkin().ult;
+            const burst = (wave) => {
+              for (let i = 0; i < 32; i++) {
+                const a = ((i + wave / 3) / 32) * Math.PI * 2;   // each volley is turned a little, filling the gaps
+                bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 560, vy: Math.sin(a) * 560, radius: 6, damage: 30 * power, color: cols[(i + wave) % 3] });
+              }
+              rings.push({ x: player.x, y: player.y, r: 10, max: 320, c: cols[wave] });
+              player.invulnTimer = Math.max(player.invulnTimer, 0.6);
+              if (wave) try { sound.playPowerup(); } catch {}
+            };
+            burst(0); later(0.55, () => burst(1)); later(1.1, () => burst(2));
+          } },
+        usa: { name: "FREEDOM STRIKE", line: "Land of the free! Fire at will!", color: "#60a5fa",
+          scene: { who: "usa", flag: true, title: "USA", art: () => FLAGS.usa, lines: [
+            "When the night feels long, keep the faith and keep flying.",
+            "I can do all things through Christ which strengtheneth me. (Philippians 4:13, KJV)",
+            "Stand firm and be brave. JESUS CHRIST IS LORD! \u2764"] },
+          run() {
           player.overdriveTimer = Math.max(player.overdriveTimer, 8);
           missileTimer = Math.max(missileTimer, 8);
           setUltBoost("shot", 8); setUltBoost("missile", 8);
@@ -2102,7 +2139,13 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             shieldTimer = Math.max(shieldTimer, 3);
             rings.push({ x: player.x, y: player.y, r: 10, max: 340, c: "#a855f7" });
           } },
-        br: { name: "ORDEM E PROGRESSO", line: "Ordem e Progresso! Vamos, Brasil!", color: "#22c55e", run() {
+        br: { name: "ORDEM E PROGRESSO", line: "Ordem e Progresso! Vamos, Brasil!", color: "#22c55e",
+          scene: { who: "br", flag: true, title: "BRAZIL", art: () => FLAGS.br, lines: [
+            "Take heart, pilot. Faith stays steady in the fiercest storm.",
+            "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind. (2 Timothy 1:7, KJV)",
+            "Coragem e f\u00e9! Jesus Cristo \u00e9 o Senhor! JESUS CHRIST IS LORD! \u2764"] },
+          run() {
+          frostTimer = Math.max(frostTimer, 6); brSlowTimer = 6;   // slows enemies and their bullets
           shieldTimer = Math.max(shieldTimer, 6);
           enemyBullets.length = 0;
           ultStrike();
@@ -2120,6 +2163,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           startCutscene(ab.scene.who, ab.scene.lines, () => { castScene = false; fireAbility(ab); });
           document.getElementById("scene-name").textContent = ab.scene.title;
           if (ab.scene.art) document.getElementById("hermes-art").src = ab.scene.art();
+          if (ab.scene.flag) { sceneEl.classList.add("flag"); sceneEl.style.setProperty("--boss", ab.color); }
           return;
         }
         fireAbility(ab);
@@ -2318,7 +2362,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         const saved = JSON.parse(gameStorage().getItem(POWERS_KEY) || "{}") || {};
         for (const k in powers) powers[k] = Math.max(0, Math.min(k === "way" ? 1 : 3, saved[k] | 0));
       } catch {}
-      let phoenixCd = 0, frostCd = 0, frostTimer = 0, trinityCd = 0, wayCd = 0, wayTimer = 0, phoenixUsed = false, mirrorCd = 0, mirrorFlash = 0;
+      let phoenixCd = 0, frostCd = 0, frostTimer = 0, trinityCd = 0, wayCd = 0, wayTimer = 0, phoenixUsed = false, mirrorCd = 0, mirrorFlash = 0, brSlowTimer = 0;
       // returns true when the power went up a level
       function gainPower(k) {
         if (powers[k] >= (k === "way" ? 1 : 3)) return false;
@@ -2833,7 +2877,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         mysteryKills = hermesKills = endlessCount = 0;
         lastRandomBoss = "";
         schedule = []; cycle = 0; met = {}; ascension = 0; ensembleCount = 0; timedActions.length = 0; ultLock = 0; ultSeen = {}; coinDrops.length = 0; immunityTimer = 0; orbSlots.fill(true); orbRegen.fill(0);
-        phoenixCd = frostCd = frostTimer = trinityCd = wayCd = wayTimer = mirrorCd = mirrorFlash = 0; phoenixUsed = false; eclipseCd = eclipseFx = 0;
+        brSlowTimer = phoenixCd = frostCd = frostTimer = trinityCd = wayCd = wayTimer = mirrorCd = mirrorFlash = 0; phoenixUsed = false; eclipseCd = eclipseFx = 0;
         sonicLevel = sonicCd = wingCd = 0;
         scene = null;
         sceneEl.classList.add("hidden");
@@ -3652,6 +3696,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         wayCd = Math.max(0, wayCd - dt);
         wayTimer = Math.max(0, wayTimer - dt);
         frostTimer = Math.max(0, frostTimer - dt);
+        brSlowTimer = Math.max(0, brSlowTimer - dt);
         if (!enemies.length) return;
         if (powers.phoenix) {
           phoenixCd -= dt;
@@ -3684,7 +3729,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       }
       function drawLegendPowers() {
         if (frostTimer > 0) {
-          ctx.fillStyle = "rgba(59,130,246,0.13)";
+          ctx.fillStyle = brSlowTimer > 0 ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.13)";
           ctx.fillRect(0, 0, viewWidth, viewHeight);
         }
         if (gamePhase === "gameover") return;
@@ -3877,6 +3922,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         if (!castScene) playGrowl();
       }
       function setSceneWho(who, title) {
+        sceneEl.classList.remove("flag");
         sceneEl.classList.toggle("fallen", who === "crew");
         if (who === "crew") {
           sceneEl.style.setProperty("--boss", "#ff1a2d");
