@@ -4443,7 +4443,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const SPRAY_SECONDS = 15;                                                   // <-- how long the spray lasts (all phases). Edit this number.
       const sprayDuration = (fp) => SPRAY_SECONDS;
       const SPRAY_FIRST_DELAY = 4;                                                // <-- seconds after the Fallen arrives before its FIRST spray. Edit this number.
-      const SPRAY_COOLDOWN = 30;                                                  // <-- seconds between sprays (all phases). Edit this number.
+      const SPRAY_COOLDOWN = 10;                                                  // <-- seconds between sprays (all phases). Edit this number.
       const sprayCooldown = (fp) => SPRAY_COOLDOWN;
       function sprayFan(en) {
         const aim = Math.atan2(player.y - en.y, player.x - en.x);
