@@ -311,6 +311,29 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       -webkit-backdrop-filter: blur(12px);
     }
 
+
+    /* ---- Player name plate (HUD) ---- */
+    .hud-player { display: flex; align-items: center; gap: 9px; padding-bottom: 8px; margin-bottom: 1px; border-bottom: 1px solid rgba(125,211,252,.18); }
+    .hud-player.hidden { display: none; }
+    .hud-avatar { position: relative; flex: none; width: 34px; height: 34px; border-radius: 50%; padding: 2px;
+      background: conic-gradient(from 0deg, #38bdf8, #a78bfa, #f472b6, #fbbf24, #38bdf8); animation: hudRingSpin 5s linear infinite;
+      box-shadow: 0 0 14px rgba(56,189,248,.55); }
+    .hud-avatar.guest { background: conic-gradient(from 0deg, #94a3b8, #e2e8f0, #64748b, #cbd5e1, #94a3b8); box-shadow: 0 0 10px rgba(148,163,184,.4); }
+    .hud-avatar-inner { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+      background: #0b1224; color: #e0f2fe; font-weight: 900; font-size: 14px; }
+    .hud-avatar-inner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hud-player-text { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
+    .hud-player-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 900; letter-spacing: .02em;
+      background: linear-gradient(100deg, #e0f2fe 0%, #38bdf8 25%, #c4b5fd 50%, #38bdf8 75%, #e0f2fe 100%); background-size: 250% 100%;
+      -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+      animation: hudNameShimmer 3.6s linear infinite; filter: drop-shadow(0 0 6px rgba(56,189,248,.45)); }
+    .hud-player-tag { font-size: 8.5px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: #7dd3fc; opacity: .9; }
+    .hud-player-tag.guest { color: #cbd5e1; }
+    @keyframes hudRingSpin { to { transform: rotate(360deg); } }
+    @keyframes hudNameShimmer { to { background-position: -250% 0; } }
+    .hud-avatar-inner { animation: hudRingSpinBack 5s linear infinite; }
+    @keyframes hudRingSpinBack { to { transform: rotate(-360deg); } }
+    @media (prefers-reduced-motion: reduce) { .hud-avatar, .hud-avatar-inner, .hud-player-name { animation: none; } }
     #wasd-hint { position: fixed; left: 16px; bottom: 14px; z-index: 40; display: none; align-items: center; gap: 8px; pointer-events: none;
       font: 900 12px Inter, sans-serif; letter-spacing: .14em; color: #e2e8f0; text-shadow: 0 0 8px #000; }
     #wasd-hint.on { display: flex; }
@@ -1501,6 +1524,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
     <header class="absolute top-0 left-0 right-0 z-30 flex items-start justify-between p-3 sm:p-5 pointer-events-none gap-2">
       <!-- Left: Score, High Score, Wave & Hull Integrity -->
       <div class="glass-card rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col gap-1.5 min-w-[168px] sm:min-w-[215px]">
+        <div id="hud-player" class="hud-player hidden">
+          <div id="hud-avatar" class="hud-avatar"><div class="hud-avatar-inner"><img id="hud-avatar-img" alt="" referrerpolicy="no-referrer" hidden><span id="hud-avatar-initial">?</span></div></div>
+          <div class="hud-player-text"><span id="hud-player-name" class="hud-player-name">Pilot</span><span id="hud-player-tag" class="hud-player-tag">Pilot</span></div>
+        </div>
         <div class="flex items-baseline justify-between gap-3">
           <span class="text-[10px] sm:text-[11px] font-extrabold tracking-widest uppercase text-sky-400">Score</span>
           <span id="hud-score" class="text-lg sm:text-2xl font-black text-white tabular-nums">0</span>
@@ -4566,11 +4593,40 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         }
       };
 
+      const playerPlate = {
+        root: document.getElementById("hud-player"),
+        avatar: document.getElementById("hud-avatar"),
+        img: document.getElementById("hud-avatar-img"),
+        initial: document.getElementById("hud-avatar-initial"),
+        name: document.getElementById("hud-player-name"),
+        tag: document.getElementById("hud-player-tag")
+      };
+      // kind: "google" | "guest" | null (hide)
+      const setPlayerPlate = (kind, name, photoURL) => {
+        if (!playerPlate.root) return;
+        if (!kind) { playerPlate.root.classList.add("hidden"); return; }
+        const isGuestPlate = kind === "guest";
+        playerPlate.root.classList.remove("hidden");
+        playerPlate.avatar.classList.toggle("guest", isGuestPlate);
+        playerPlate.tag.classList.toggle("guest", isGuestPlate);
+        playerPlate.tag.textContent = isGuestPlate ? "Guest prodigal" : "Google pilot";
+        playerPlate.name.textContent = name;
+        playerPlate.initial.textContent = (Array.from(name.trim())[0] || "?").toUpperCase();
+        playerPlate.img.hidden = true;
+        playerPlate.initial.hidden = false;
+        if (!isGuestPlate && typeof photoURL === "string" && photoURL.startsWith("https://")) {
+          playerPlate.img.onload = () => { playerPlate.img.hidden = false; playerPlate.initial.hidden = true; };
+          playerPlate.img.onerror = () => { playerPlate.img.hidden = true; playerPlate.initial.hidden = false; };
+          playerPlate.img.src = photoURL;
+        }
+      };
+
       // Guest UI is applied immediately and never depends on Firebase loading,
       // so "Play as Guest" works even when sign-in services are slow or blocked.
       const showGuestUi = (name) => {
         window.PB_isGuest = true;
         window.PB_canPlay = true;
+        setPlayerPlate("guest", name);
         startButton.disabled = false;
         startButton.classList.remove("hidden");
         accountTitle.textContent = "Welcome, " + name;
@@ -5020,6 +5076,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           startButton.classList.toggle("hidden", !window.PB_canPlay);
           if (googleUser) {
             const name = googleDisplayName(user);
+            setPlayerPlate("google", name, user.photoURL);
             accountTitle.textContent = "Welcome, " + name;
             accountDescription.textContent = "Loading your saved Google account data...";
             accountStatus.textContent = "Signed in";
@@ -5097,6 +5154,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             if (isGuest) {
               showGuestUi(guestName);
             } else {
+              setPlayerPlate(null);
               accountTitle.textContent = "Welcome, Guest";
               accountDescription.textContent = "Sign in to save data or play as guest (temporary data).";
               accountStatus.textContent = "Choose mode";
