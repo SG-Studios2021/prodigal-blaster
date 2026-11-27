@@ -1632,7 +1632,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
               <div>
                 <div class="start-dashboard-kicker">Compete worldwide</div>
                 <h2 id="leaderboard-panel-title">Global leaderboard</h2>
-                <p>Top scores from signed-in pilots.</p>
+                <p>Top scores from Google and guest pilots.</p>
               </div>
               <span id="leaderboard-status" class="start-online-status" hidden>Connecting</span>
             </div>
@@ -2307,9 +2307,9 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       }
 
       function submitCurrentRunScore() {
-        if (!window.PB_isAuthenticated || score <= 0) return;
+        if (!window.PB_canSubmitScore || score <= 0) return;
         if (typeof window.PB_submitScore !== "function") {
-          console.error("Score submission is unavailable for the signed-in run.");
+          console.error("Score submission is unavailable for this run.");
           return;
         }
         window.PB_submitScore(score);
@@ -4814,10 +4814,13 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
         window.PB_submitScore = async (rawScore) => {
           const user = auth.currentUser;
-          if (!isGoogleUser(user)) {
-            setMessage("Sign in with Google before submitting a score.", "error");
+          const guestName = getGuestName();
+          const isAnonymousGuest = Boolean(user && user.isAnonymous && guestName);
+          if (!isGoogleUser(user) && !isAnonymousGuest) {
+            setMessage("Guest scores need Anonymous sign-in enabled in Firebase to reach the leaderboard.", "error");
             return;
           }
+          const scoreName = isAnonymousGuest ? guestName.slice(0, 40) : googleDisplayName(user);
           const score = Math.floor(Number(rawScore));
           if (!Number.isSafeInteger(score) || score <= 0) {
             setMessage("Could not submit an invalid score.", "error");
@@ -4832,7 +4835,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
               if (existing.exists() && Number(existing.data().score) >= score) return false;
               transaction.set(scoreRef, {
                 uid: user.uid,
-                displayName: googleDisplayName(user),
+                displayName: scoreName,
                 score,
                 updatedAt: firestoreSdk.serverTimestamp()
               });
@@ -4846,9 +4849,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           }
         };
 
-        const syncGoogleLeaderboard = async (user) => {
+        const syncLeaderboardBest = async (user, displayName) => {
           const scoreRef = firestoreSdk.doc(db, "leaderboard", user.uid);
-          const displayName = googleDisplayName(user);
           const localBest = window.PB_getPersonalBest();
           if (!Number.isSafeInteger(localBest) || localBest < 0) {
             setMessage("Could not sync an invalid personal best.", "error");
@@ -4898,6 +4900,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         let firstQueuedAt = 0;
         let saveVersion = 0;
         let authStateVersion = 0;
+        let guestAnonymousTried = false;
+        let guestSyncedUid = null;
 
         const writeProfile = (user, playerData) => firestoreSdk.setDoc(accountProfileRef(user), {
           uid: user.uid,
@@ -5006,7 +5010,9 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           const googleUser = isGoogleUser(user);
           const guestName = getGuestName();
           const isGuest = !googleUser && Boolean(guestName);
+          const anonymousGuest = Boolean(user && user.isAnonymous && guestName);
           window.PB_isAuthenticated = googleUser;
+          window.PB_canSubmitScore = googleUser || anonymousGuest;
           window.PB_isGuest = isGuest;
           window.PB_accountDataLoaded = false;
           window.PB_canPlay = !googleUser && isGuest;
@@ -5045,7 +5051,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
               } catch (error) {
                 console.error("Could not clear guest session marker", error);
               }
-              await syncGoogleLeaderboard(user);
+              await syncLeaderboardBest(user, googleDisplayName(user));
               if (stateVersion !== authStateVersion || !auth.currentUser || auth.currentUser.uid !== user.uid) return;
               window.PB_canPlay = true;
               startButton.disabled = false;
@@ -5068,11 +5074,25 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           } else {
             window.PB_isAuthenticated = false;
             window.PB_temporarySession = isGuest;
-            if (user) {
+            if (user && !anonymousGuest) {
+              // Stale anonymous session from an earlier guest tab, or an unsupported provider.
               firebaseAuthSdk.signOut(auth).catch((error) => {
                 console.error("Could not clear a non-Google Firebase session", error);
                 setMessage("This account is not signed in with Google. Please sign out and continue with Google.", "error");
               });
+            }
+            if (isGuest && !user && !guestAnonymousTried) {
+              // Guests get a hidden anonymous Firebase session so their scores can reach the leaderboard.
+              guestAnonymousTried = true;
+              firebaseAuthSdk.signInAnonymously(auth).catch((error) => {
+                console.error("Anonymous guest sign-in failed", error);
+                const code = error && error.code ? " (" + error.code + ")" : "";
+                setMessage("Playing as guest. Scores won't reach the leaderboard" + code + ": enable Anonymous sign-in in Firebase Authentication.", "error");
+              });
+            }
+            if (anonymousGuest && guestSyncedUid !== user.uid) {
+              guestSyncedUid = user.uid;
+              void syncLeaderboardBest(user, guestName.slice(0, 40));
             }
             if (isGuest) {
               showGuestUi(guestName);
@@ -5092,8 +5112,8 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
               setMessage(explainAuthError(redirectError), "error");
               redirectError = null;
             } else if (isGuest) {
-              setMessage("Playing as " + guestName + ". Progress is temporary.");
-            } else if (user) {
+              setMessage("Playing as " + guestName + ". Progress is temporary, but your scores can still reach the leaderboard.");
+            } else if (user && !user.isAnonymous) {
               setMessage("This account is not signed in with Google. Please continue with Google.", "error");
             } else {
               setMessage("Sign in to save data or play as guest (temporary data).");
