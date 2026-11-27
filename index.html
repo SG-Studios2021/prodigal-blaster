@@ -338,10 +338,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
     .hud-crown { position: absolute; top: -12px; left: 50%; z-index: 2; width: 22px; height: 18px; pointer-events: none;
       transform: translateX(-50%) rotate(-14deg); filter: drop-shadow(0 0 5px var(--crown-glow)); animation: hudCrownFloat 2.4s ease-in-out infinite; }
     .hud-crown[hidden] { display: none; }
-    .hud-crown[data-pos="1"] { --crown: #fbbf24; --crown-dark: #b45309; --crown-glow: rgba(251,191,36,.95); animation: hudCrownFloat 2.4s ease-in-out infinite, hudCrownGlow 1.5s ease-in-out infinite; }
-    .hud-crown[data-pos="2"] { --crown: #e5e7eb; --crown-dark: #6b7280; --crown-glow: rgba(229,231,235,.8); }
-    .hud-crown[data-pos="3"] { --crown: #d9822b; --crown-dark: #6b3410; --crown-glow: rgba(217,130,43,.8); }
-    .hud-crown[data-pos="4"], .hud-crown[data-pos="5"] { --crown: #60a5fa; --crown-dark: #1e3a8a; --crown-glow: rgba(96,165,250,.8); }
+    .hud-avatar-wrap[data-pos="1"] { --crown: #fbbf24; --crown-dark: #b45309; --crown-glow: rgba(251,191,36,.95); }
+    .hud-avatar-wrap[data-pos="2"] { --crown: #e5e7eb; --crown-dark: #6b7280; --crown-glow: rgba(229,231,235,.8); }
+    .hud-avatar-wrap[data-pos="3"] { --crown: #d9822b; --crown-dark: #6b3410; --crown-glow: rgba(217,130,43,.8); }
+    .hud-avatar-wrap[data-pos="4"], .hud-avatar-wrap[data-pos="5"] { --crown: #60a5fa; --crown-dark: #1e3a8a; --crown-glow: rgba(96,165,250,.8); }
+    .hud-avatar-wrap[data-pos="1"] .hud-crown { animation: hudCrownFloat 2.4s ease-in-out infinite, hudCrownGlow 1.5s ease-in-out infinite; }
+    .hud-rank-num { position: absolute; right: -9px; bottom: -5px; z-index: 2; padding: 0 5px; min-width: 18px; text-align: center; font-size: 9px; font-weight: 900; line-height: 14px;
+      border-radius: 8px; color: #0b1020; background: var(--crown); border: 1px solid var(--crown-dark); box-shadow: 0 0 8px var(--crown-glow); }
+    .hud-rank-num[hidden] { display: none; }
     @keyframes hudCrownFloat { 0%, 100% { transform: translateX(-50%) rotate(-14deg) translateY(0); } 50% { transform: translateX(-50%) rotate(-14deg) translateY(-2px); } }
     @keyframes hudCrownGlow { 0%, 100% { filter: drop-shadow(0 0 4px var(--crown-glow)); } 50% { filter: drop-shadow(0 0 11px var(--crown-glow)) brightness(1.25); } }
     .hud-avatar { position: relative; flex: none; width: 34px; height: 34px; border-radius: 50%; padding: 2px;
@@ -1558,6 +1562,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           <div class="hud-avatar-wrap">
             <div id="hud-avatar" class="hud-avatar"><div class="hud-avatar-inner"><img id="hud-avatar-img" alt="" referrerpolicy="no-referrer" hidden><span id="hud-avatar-initial">?</span></div></div>
             <svg id="hud-crown" class="hud-crown" viewBox="0 0 24 20" hidden aria-hidden="true"><path d="M2 17 L1.5 5 L7.5 10 L12 2 L16.5 10 L22.5 5 L22 17 Z" style="fill:var(--crown)" stroke-width="1.2" stroke-linejoin="round" /><path d="M2 17 L1.5 5 L7.5 10 L12 2 L16.5 10 L22.5 5 L22 17 Z" fill="none" style="stroke:var(--crown-dark)" stroke-width="1.2" stroke-linejoin="round" /><rect x="2" y="17" width="20" height="2.6" rx="1" style="fill:var(--crown-dark)" /><circle cx="12" cy="2.4" r="1.4" fill="#fff" /><circle cx="1.8" cy="5" r="1.2" fill="#fff" /><circle cx="22.2" cy="5" r="1.2" fill="#fff" /></svg>
+            <span id="hud-rank-num" class="hud-rank-num" hidden>#1</span>
           </div>
           <div class="hud-player-text"><span id="hud-player-name" class="hud-player-name">Pilot</span><span id="hud-player-tag" class="hud-player-tag">Beginner Prodigal</span></div>
         </div>
@@ -4224,6 +4229,56 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         ctx.fill();
 
         ctx.restore();
+        drawLeaderboardCrown();
+      }
+
+      // Top-5 leaderboard players carry a crown and their rank number above the ship.
+      function drawLeaderboardCrown() {
+        const pos = window.PB_crownPos | 0;
+        if (pos < 1 || pos > 5) return;
+        const palette = {
+          1: ["#fbbf24", "#b45309", "#fde68a"],
+          2: ["#e5e7eb", "#6b7280", "#ffffff"],
+          3: ["#d9822b", "#6b3410", "#fcd9a8"],
+          4: ["#60a5fa", "#1e3a8a", "#bfdbfe"],
+          5: ["#60a5fa", "#1e3a8a", "#bfdbfe"]
+        }[pos];
+        const bob = Math.sin(elapsedTime * 3.2) * 2;
+        const s = 1.15;
+        const cx = player.x;
+        const cy = player.y - 24 - 20 + bob;
+        ctx.save();
+        ctx.shadowColor = palette[0];
+        ctx.shadowBlur = pos === 1 ? 14 + Math.sin(elapsedTime * 5) * 5 : 9;
+        ctx.translate(cx - 12 * s, cy - 10 * s);
+        ctx.scale(s, s);
+        ctx.fillStyle = palette[0];
+        ctx.strokeStyle = palette[1];
+        ctx.lineWidth = 1.2;
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(2, 17); ctx.lineTo(1.5, 5); ctx.lineTo(7.5, 10); ctx.lineTo(12, 2);
+        ctx.lineTo(16.5, 10); ctx.lineTo(22.5, 5); ctx.lineTo(22, 17); ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = palette[1];
+        ctx.fillRect(2, 17, 20, 2.6);
+        ctx.fillStyle = "#ffffff";
+        [[12, 2.4], [1.8, 5], [22.2, 5]].forEach(([jx, jy]) => { ctx.beginPath(); ctx.arc(jx, jy, 1.3, 0, Math.PI * 2); ctx.fill(); });
+        ctx.restore();
+
+        ctx.save();
+        ctx.font = "900 13px system-ui, -apple-system, Segoe UI, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(2, 6, 23, 0.9)";
+        ctx.shadowColor = palette[0];
+        ctx.shadowBlur = 8;
+        ctx.strokeText("#" + pos, cx, cy - 20);
+        ctx.fillStyle = palette[2];
+        ctx.fillText("#" + pos, cx, cy - 20);
+        ctx.restore();
       }
 
       function drawEnemies() {
@@ -4652,12 +4707,21 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       ];
       const crownEl = document.getElementById("hud-crown");
       // position: 1..5 = rank on the global leaderboard, anything else hides the crown
+      const crownWrap = crownEl ? crownEl.parentElement : null;
+      const rankNumEl = document.getElementById("hud-rank-num");
+      window.PB_crownPos = 0;
       window.PB_setCrown = (position) => {
         if (!crownEl || !playerPlate.root) return;
         const on = Number.isInteger(position) && position >= 1 && position <= 5;
-        crownEl.hidden = !on;
+        window.PB_crownPos = on ? position : 0;
+        // SVG elements have no .hidden property, so the attribute is toggled directly.
+        crownEl.toggleAttribute("hidden", !on);
+        if (rankNumEl) {
+          rankNumEl.toggleAttribute("hidden", !on);
+          if (on) rankNumEl.textContent = "#" + position;
+        }
         playerPlate.root.classList.toggle("has-crown", on);
-        if (on) crownEl.dataset.pos = String(position);
+        if (on && crownWrap) crownWrap.dataset.pos = String(position);
       };
       let lastRankIndex = null;
       window.PB_refreshRank = () => {
