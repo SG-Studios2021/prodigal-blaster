@@ -494,6 +494,11 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
     @media (prefers-reduced-motion: reduce) { #overlay-hermes.fallen #hermes-art, #overlay-hermes.fallen #hermes-line { animation: none; } }
     .audio-toggle[aria-pressed="true"] { border-color: #38bdf8; color: #e0f2fe; }
     .audio-toggle[aria-pressed="false"] { opacity: .55; text-decoration: line-through; }
+    @media (pointer: coarse) { #btn-autoshoot, .mouse-only { display: none; } }
+    #btn-autoshoot, #btn-mousemove { text-decoration: none; }
+    #btn-autoshoot[aria-pressed="false"], #btn-mousemove[aria-pressed="false"] { opacity: .7; }
+    #overlay-pause > .glass-card { max-height: 100%; overflow-y: auto; }
+    #overlay-pause > .glass-card > * { flex-shrink: 0; }
     @keyframes hermesLoom { from { transform: scale(1); } to { transform: scale(1.09); } }
   </style>
 <style>
@@ -1634,7 +1639,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           <svg class="w-4 h-4 text-sky-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
           </svg>
-          <span class="hidden sm:inline">Pause</span>
+          <span class="hidden sm:inline">(P) Pause</span>
         </button>
       </div>
     </header>
@@ -1764,6 +1769,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           <button id="btn-music" type="button" class="arcade-btn btn-secondary audio-toggle flex-1 py-3 text-xs sm:text-sm" aria-pressed="true">Music: On</button>
           <button id="btn-sfx" type="button" class="arcade-btn btn-secondary audio-toggle flex-1 py-3 text-xs sm:text-sm" aria-pressed="true">SFX: On</button>
         </div>
+        <div class="flex gap-2.5 w-full -mt-1.5">
+          <button id="btn-autoshoot" type="button" class="arcade-btn btn-secondary audio-toggle flex-1 py-3 text-xs sm:text-sm" aria-pressed="false">Auto Shoot: Off</button>
+          <button id="btn-mousemove" type="button" class="arcade-btn btn-secondary audio-toggle mouse-only flex-1 py-3 text-xs sm:text-sm" aria-pressed="false">Mouse Move: Off</button>
+        </div>
         <div class="flex flex-col sm:flex-row gap-2.5 w-full mt-1">
           <button id="btn-resume" type="button" class="arcade-btn btn-primary flex-1 py-3 text-xs sm:text-sm">
             Resume
@@ -1892,13 +1901,13 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const SKINS = [
         { id: "neon", name: "Neon Blue", price: 0, flames: true, flameX: 13, flameY: 22, shots: ["#38bdf8"], blurb: "Default ship · blue shots" },
         { id: "blue", name: "Classic Blue", price: 50, fixedPrice: true, flames: true, shots: ["#38bdf8"], blurb: "Classic blue shots" },
-        { id: "ph",   name: "Philippines",  price: 1000, shots: ["#3b82f6", "#fbbf24", "#ef4444"], blurb: "Sun Burst [E]: golden ring of shots" },
-        { id: "usa",  name: "USA",          price: 1500, shots: ["#ef4444", "#3b82f6", "#ffffff"], blurb: "Freedom Strike [E]: rapid fire + missiles" },
-        { id: "br",   name: "Brazil",       price: 2000, shots: ["#22c55e", "#22c55e", "#facc15"], blurb: "Ordem e Progresso [E]: shield + clear bullets" },
-        { id: "hermes",  name: "Hermes",     price: 3000, boss: true, thumb: "hermesFace",  shots: ["#ef4444", "#fca5a5"], blurb: "Wings of Ruin [E]: missile fan + cutscene" },
-        { id: "clark",   name: "Clark",      price: 3500, boss: true, thumb: "clarkFace",   shots: ["#fbbf24", "#f97316"], blurb: "Solar Inferno [E]: sun beam + cutscene" },
-        { id: "jerecho", name: "Jerecho",    price: 3500, boss: true, thumb: "jerechoFace", shots: ["#3b82f6", "#93c5fd"], blurb: "Absolute Zero [E]: freeze + cutscene" },
-        { id: "jian",    name: "Void Jian",  price: 5000, boss: true, thumb: "jianEvo",     shots: ["#a855f7", "#e879f9"], blurb: "Void Collapse [E]: void blast + 4 violet allies" }
+        { id: "ph",   name: "Philippines",  price: 1500, shots: ["#3b82f6", "#fbbf24", "#ef4444"], blurb: "Sun Burst [E]: golden ring of shots" },
+        { id: "usa",  name: "USA",          price: 2000, shots: ["#ef4444", "#3b82f6", "#ffffff"], blurb: "Freedom Strike [E]: rapid fire + missiles" },
+        { id: "br",   name: "Brazil",       price: 2500, shots: ["#22c55e", "#22c55e", "#facc15"], blurb: "Ordem e Progresso [E]: shield + clear bullets" },
+        { id: "hermes",  name: "Hermes",     price: 4000, boss: true, thumb: "hermesFace",  shots: ["#ef4444", "#fca5a5"], blurb: "Wings of Ruin [E]: missile fan + cutscene" },
+        { id: "clark",   name: "Clark",      price: 4500, boss: true, thumb: "clarkFace",   shots: ["#fbbf24", "#f97316"], blurb: "Solar Inferno [E]: sun beam + cutscene" },
+        { id: "jerecho", name: "Jerecho",    price: 5000, boss: true, thumb: "jerechoFace", shots: ["#3b82f6", "#93c5fd"], blurb: "Absolute Zero [E]: freeze + cutscene" },
+        { id: "jian",    name: "Void Jian",  price: 7000, boss: true, thumb: "jianEvo",     shots: ["#a855f7", "#e879f9"], blurb: "Void Collapse [E]: void blast + 4 violet allies" }
       ];
       const skinThumb = (s) => (window.PB_SKIN_IMGS || {})[s.id] || (window.PB_ASSETS || {})[s.thumb] || "";
       // Bullet colour follows the equipped ship's theme
@@ -2156,7 +2165,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         ctx.fillStyle = "#fff"; ctx.fillText(speech.text, x, y + 1);
         ctx.restore();
       }
-      const FREE_SKINS_FOR_TESTING = true; // set to false to charge the real prices again
+      const FREE_SKINS_FOR_TESTING = false; // set to false to charge the real prices again
       const skinPrice = (s) => (FREE_SKINS_FOR_TESTING && !s.fixedPrice ? 0 : s.price);
       const skinById = (id) => SKINS.find((s) => s.id === id);
       const skinImgs = {};
@@ -2174,7 +2183,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         coins = Math.max(0, m.coins | 0); potions = Math.max(0, Math.min(POTION_MAX, m.potions | 0)); jianKills = Math.max(0, Math.min(MAX_JIAN_SHOT_UPGRADES, m.jianKills | 0)); hasOrbs = !!m.orbs;
         loadSkins(m);
       } catch {}
-      function saveMeta() { try { saveGameItem(META_KEY, JSON.stringify({ coins, potions, jianKills, orbs: hasOrbs, skins: ownedSkins, skin: equippedSkin, musicOff: sound.musicMuted })); } catch {} refreshShop(); }
+      function saveMeta() { try { saveGameItem(META_KEY, JSON.stringify({ coins, potions, jianKills, orbs: hasOrbs, skins: ownedSkins, skin: equippedSkin, musicOff: sound.musicMuted, autoShoot, mouseMove })); } catch {} refreshShop(); }
       function buySkin(id) {
         const s = skinById(id);
         if (!s || ownedSkins.includes(id) || coins < skinPrice(s)) return;
@@ -2535,6 +2544,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         jianKills = Math.max(0, Math.min(MAX_JIAN_SHOT_UPGRADES, meta.jianKills | 0));
         hasOrbs = Boolean(meta.orbs);
         loadSkins(meta);
+        loadControls(meta);
         const savedPowers = parseJsonObject(storage.getItem(POWERS_KEY));
         for (const key in powers) {
           powers[key] = Math.max(0, Math.min(key === "way" ? 1 : 3, savedPowers[key] | 0));
@@ -2590,6 +2600,19 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       let pointerFiring = false;
       let pointerAimX = null;
       let pointerAimY = null;
+      let autoShoot = false, mouseMove = false;
+      let mouseTarget = null;   // where the ship is gliding to when Mouse Move is on
+      function loadControls(m) {
+        autoShoot = !!(m && m.autoShoot);
+        mouseMove = !!(m && m.mouseMove);
+        mouseTarget = null;
+        for (const [id, label, on] of [["btn-autoshoot", "Auto Shoot", autoShoot], ["btn-mousemove", "Mouse Move", mouseMove]]) {
+          const b = document.getElementById(id);
+          b.textContent = label + (on ? ": On" : ": Off");
+          b.setAttribute("aria-pressed", String(on));
+        }
+      }
+      try { loadControls(JSON.parse(gameStorage().getItem(META_KEY) || "{}")); } catch {}
 
       // Touch joystick & fire tracking
       let joystickActive = false;
@@ -2795,6 +2818,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       }
 
       function togglePause() {
+        mouseTarget = null;
         if (gamePhase === "playing") {
           gamePhase = "paused";
           pointerFiring = false;
@@ -3784,6 +3808,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         done();
       }
       function releaseControls() {
+        mouseTarget = null;
         pointerFiring = false;
         touchFireHeld = false;
         keys.clear();
@@ -4474,6 +4499,19 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         player.x += moveX * spd * dt;
         player.y += moveY * spd * dt;
 
+        // Mouse Move: glide at a steady speed to the spot you clicked or dragged to
+        if (mag > 0) mouseTarget = null;   // keyboard takes over until the mouse moves again
+        else if (mouseMove && mouseTarget) {
+          const dx = mouseTarget.x - player.x, dy = mouseTarget.y - player.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 0.5) {
+            const step = Math.min(dist, spd * 1.45 * dt);
+            player.x += (dx / dist) * step;
+            player.y += (dy / dist) * step;
+            moveX = Math.max(-1, Math.min(1, dx / 90));   // lets the ship tilt as it glides
+          }
+        }
+
         const minX = 32;
         const maxX = Math.max(minX + 10, viewWidth - 32);
         const minY = viewWidth < 640 ? 140 : 112;
@@ -4487,7 +4525,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
 
         // Shooting check
         const wantsFire =
-          keys.has("Space") || pointerFiring || touchFireHeld || IS_TOUCH;
+          keys.has("Space") || pointerFiring || touchFireHeld || IS_TOUCH || autoShoot;
 
         if (wantsFire && player.fireTimer <= 0) {
           spawnPlayerShot();
@@ -4662,6 +4700,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         // Update enemy projectiles
         for (let i = enemyBullets.length - 1; i >= 0; i--) {
           const eb = enemyBullets[i];
+          if (!eb) continue;   // Phoenix / The Way can wipe every bullet in the middle of this loop
           if (eb.home > 0) {
             eb.home -= dt;
             const sp = Math.hypot(eb.vx, eb.vy);
@@ -5086,10 +5125,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
         lastFrameTime = now;
 
+        // book the next frame first, so one error can never freeze the whole game
+        requestAnimationFrame(gameLoop);
         updateSimulation(dt);
         renderFrame();
-
-        requestAnimationFrame(gameLoop);
       }
 
       // =====================================================================
@@ -5136,6 +5175,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           pointerFiring = true;
           pointerAimX = e.clientX;
           pointerAimY = e.clientY;
+          if (mouseMove) mouseTarget = { x: e.clientX, y: e.clientY };
         }
       });
 
@@ -5145,6 +5185,22 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           pointerFiring = false;
         }
       });
+
+      window.addEventListener("pointermove", (e) => {
+        if (e.pointerType === "touch" || !mouseMove || gamePhase !== "playing") return;
+        if (!pointerFiring || !(e.buttons & 1)) return;   // only while a click that began on the play area is held
+        mouseTarget = { x: e.clientX, y: e.clientY };
+      });
+      for (const id of ["btn-autoshoot", "btn-mousemove"]) {
+        const btn = document.getElementById(id);
+        btn.addEventListener("click", () => {
+          if (id === "btn-autoshoot") autoShoot = !autoShoot; else mouseMove = !mouseMove;
+          const choice = { autoShoot, mouseMove };
+          saveMeta();
+          loadControls(choice);
+          btn.blur();
+        });
+      }
 
       // Virtual joystick touch handling
       const maxJoystickRadius = 38;
