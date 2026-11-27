@@ -1917,16 +1917,22 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       // ---- Ship skins (prices are in coins; edit them here) ----
       window.PB_SKIN_IMGS.neon = window.PB_NEON_SHIP;
       const SKINS = [
-        { id: "neon", name: "Neon Blue", price: 0, flames: true, flameX: 13, flameY: 22, shots: ["#38bdf8"], blurb: "Default ship · blue shots" },
-        { id: "blue", name: "Classic Blue", price: 50, fixedPrice: true, flames: true, shots: ["#38bdf8"], blurb: "Classic blue shots" },
-        { id: "ph",   name: "Philippines",  price: 1000, shots: ["#3b82f6", "#fbbf24", "#ef4444"], blurb: "Sun Burst [E]: golden ring of shots" },
-        { id: "usa",  name: "USA",          price: 1500, shots: ["#ef4444", "#3b82f6", "#ffffff"], blurb: "Freedom Strike [E]: rapid fire + missiles" },
-        { id: "br",   name: "Brazil",       price: 2000, shots: ["#22c55e", "#22c55e", "#facc15"], blurb: "Ordem e Progresso [E]: shield + clear bullets" },
-        { id: "hermes",  name: "Hermes",     price: 3000, boss: true, thumb: "hermesFace",  shots: ["#ef4444", "#fca5a5"], blurb: "Wings of Ruin [E]: missile fan + cutscene" },
-        { id: "clark",   name: "Clark",      price: 3500, boss: true, thumb: "clarkFace",   shots: ["#fbbf24", "#f97316"], blurb: "Solar Inferno [E]: sun beam + cutscene" },
-        { id: "jerecho", name: "Jerecho",    price: 3500, boss: true, thumb: "jerechoFace", shots: ["#3b82f6", "#93c5fd"], blurb: "Absolute Zero [E]: freeze + cutscene" },
-        { id: "jian",    name: "Void Jian",  price: 5000, boss: true, thumb: "jianEvo",     shots: ["#a855f7", "#e879f9"], blurb: "Void Collapse [E]: void blast + 4 violet allies" }
+        { id: "neon", name: "Neon Blue", price: 0, dmg: 1, ult: 1, flames: true, flameX: 13, flameY: 22, shots: ["#38bdf8"], blurb: "Default ship · blue shots" },
+        { id: "blue", name: "Classic Blue", price: 50, dmg: 1.02, ult: 1, fixedPrice: true, flames: true, shots: ["#38bdf8"], blurb: "Classic blue shots" },
+        { id: "ph",   name: "Philippines",  price: 1000, dmg: 1.1, ult: 1.2, shots: ["#3b82f6", "#fbbf24", "#ef4444"], blurb: "Sun Burst [E]: golden ring of shots" },
+        { id: "usa",  name: "USA",          price: 1500, dmg: 1.15, ult: 1.35, shots: ["#ef4444", "#3b82f6", "#ffffff"], blurb: "Freedom Strike [E]: rapid fire + missiles" },
+        { id: "br",   name: "Brazil",       price: 2000, dmg: 1.2, ult: 1.5, shots: ["#22c55e", "#22c55e", "#facc15"], blurb: "Ordem e Progresso [E]: shield + clear bullets" },
+        { id: "hermes",  name: "Hermes",     price: 3000, dmg: 1.35, ult: 2, boss: true, thumb: "hermesFace",  shots: ["#ef4444", "#fca5a5"], blurb: "Wings of Ruin [E]: missile fan + cutscene" },
+        { id: "clark",   name: "Clark",      price: 3500, dmg: 1.4, ult: 2.2, boss: true, thumb: "clarkFace",   shots: ["#fbbf24", "#f97316"], blurb: "Solar Inferno [E]: sun beam + cutscene" },
+        { id: "jerecho", name: "Jerecho",    price: 3500, dmg: 1.4, ult: 2.2, boss: true, thumb: "jerechoFace", shots: ["#3b82f6", "#93c5fd"], blurb: "Absolute Zero [E]: freeze + cutscene" },
+        { id: "jian",    name: "Void Jian",  price: 5000, dmg: 1.7, ult: 3, boss: true, thumb: "jianEvo",     shots: ["#a855f7", "#e879f9"], blurb: "Void Collapse [E]: void blast + Void Pulse + strongest army" }
       ];
+      // dmg = normal shot damage multiplier, ult = ultimate damage multiplier (edit them in the list above)
+      const ULT_BLAST = 100;              // base damage of an ultimate that hits every enemy
+      const ultBoost = { shot: 0, missile: 0, laser: 0, mult: 1 };   // seconds left on each boosted attack
+      const curSkin = () => skinById(equippedSkin) || SKINS[0];
+      function ultStrike() { const d = ULT_BLAST * curSkin().ult * dmgMult(); for (const en of enemies.slice()) hurt(en, d); }
+      function setUltBoost(kind, secs) { ultBoost[kind] = secs; ultBoost.mult = curSkin().ult; }
       const skinThumb = (s) => (window.PB_SKIN_IMGS || {})[s.id] || (window.PB_ASSETS || {})[s.thumb] || "";
       // Bullet colour follows the equipped ship's theme
       let shotIdx = 0;
@@ -1936,7 +1942,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       let abilityCd = 0, speech = null;
       // ---- Void Jian's violet friend ships ----
       const allies = [];
-      const ALLY_LIFE = 10, ALLY_DAMAGE = 12, ALLY_FIRE_CD = 0.4;
+      const ALLY_LIFE = 10, ALLY_DAMAGE = 40, ALLY_FIRE_CD = 0.25;   // Jian's army: the strongest followers in the game
       const ALLY_SLOTS = [[-72, 22], [-38, 52], [38, 52], [72, 22]];
       function summonAllies() {
         allies.length = 0;
@@ -2046,7 +2052,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           const cols = ["#fbbf24", "#ef4444", "#3b82f6"];
           for (let i = 0; i < 32; i++) {
             const a = (i / 32) * Math.PI * 2;
-            bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 560, vy: Math.sin(a) * 560, radius: 6, damage: 30, color: cols[i % 3] });
+            bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 560, vy: Math.sin(a) * 560, radius: 6, damage: 30 * curSkin().ult, color: cols[i % 3] });
           }
           rings.push({ x: player.x, y: player.y, r: 10, max: 320, c: "#fbbf24" });
           player.invulnTimer = Math.max(player.invulnTimer, 0.6);
@@ -2054,6 +2060,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         usa: { name: "FREEDOM STRIKE", line: "Land of the free! Fire at will!", color: "#60a5fa", run() {
           player.overdriveTimer = Math.max(player.overdriveTimer, 8);
           missileTimer = Math.max(missileTimer, 8);
+          setUltBoost("shot", 8); setUltBoost("missile", 8);
           rings.push({ x: player.x, y: player.y, r: 10, max: 260, c: "#ef4444" });
         } },
         hermes: { name: "WINGS OF RUIN", quick: "FALL!", color: "#ef4444",
@@ -2061,9 +2068,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           run() {
             for (let i = 0; i < 14; i++) {
               const a = -Math.PI / 2 + ((i - 6.5) / 6.5) * 1.1;
-              missiles.push({ x: player.x, y: player.y - 10, vx: Math.cos(a) * 300, vy: Math.sin(a) * 300, life: 3 });
+              missiles.push({ x: player.x, y: player.y - 10, vx: Math.cos(a) * 300, vy: Math.sin(a) * 300, life: 3, pow: curSkin().ult });
             }
             player.overdriveTimer = Math.max(player.overdriveTimer, 5);
+            setUltBoost("shot", 5);
             player.invulnTimer = Math.max(player.invulnTimer, 1);
             rings.push({ x: player.x, y: player.y, r: 10, max: 300, c: "#ef4444" });
           } },
@@ -2071,6 +2079,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           scene: { who: "clark", title: "CLARK APONG ISUK", lines: ["The sun answers to me.", "Solar Inferno... ignite!"] },
           run() {
             laserTimer = Math.max(laserTimer, 6);
+            setUltBoost("laser", 6);
             flash = 0.5;
             rings.push({ x: player.x, y: player.y, r: 10, max: 320, c: "#fbbf24" });
           } },
@@ -2079,13 +2088,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           run() {
             frostTimer = Math.max(frostTimer, 6);
             enemyBullets.length = 0;
-            for (const en of enemies.slice()) hurt(en, 80);
+            ultStrike();
             rings.push({ x: player.x, y: player.y, r: 10, max: Math.hypot(viewWidth, viewHeight), c: "#60a5fa" });
           } },
-        jian: { name: "VOID COLLAPSE", quick: "COLLAPSE!", color: "#a855f7",
+        jian: { name: "VOID COLLAPSE + VOID PULSE", quick: "COLLAPSE!", color: "#a855f7",
           scene: { who: "jian", title: "VOID JIAN", lines: ["The void finally listens to me.", "Void Collapse... rise, my friends!"], art: () => window.PB_ASSETS.jianEvo },
           run() {
             novaBlast(false);
+            voidPulse(Math.max(2, powers.mirror), curSkin().ult);   // Void Pulse fires even before you own the Void Mirror
             summonAllies();
             shieldTimer = Math.max(shieldTimer, 3);
             rings.push({ x: player.x, y: player.y, r: 10, max: 340, c: "#a855f7" });
@@ -2093,6 +2103,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         br: { name: "ORDEM E PROGRESSO", line: "Ordem e Progresso! Vamos, Brasil!", color: "#22c55e", run() {
           shieldTimer = Math.max(shieldTimer, 6);
           enemyBullets.length = 0;
+          ultStrike();
           rings.push({ x: player.x, y: player.y, r: 10, max: Math.hypot(viewWidth, viewHeight), c: "#22c55e" });
         } }
       };
@@ -2226,7 +2237,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           const btn = eq ? `<button type="button" class="sk-btn equipped" disabled>Equipped</button>`
             : owned ? `<button type="button" class="sk-btn" data-equip="${s.id}">Equip</button>`
             : `<button type="button" class="sk-btn buy" data-buy="${s.id}" ${coins < skinPrice(s) ? "disabled" : ""}>${skinPrice(s) ? skinPrice(s) + " coins" : "Free"}</button>`;
-          return `<div class="sk-card${eq ? " equipped" : ""}"><img class="${s.boss ? "face" : ""}" src="${skinThumb(s)}" alt=""><span class="sk-name">${s.name}</span><span class="sk-ab">${s.blurb}</span>${btn}</div>`;
+          return `<div class="sk-card${eq ? " equipped" : ""}"><img class="${s.boss ? "face" : ""}" src="${skinThumb(s)}" alt=""><span class="sk-name">${s.name}</span><span class="sk-ab">${s.blurb}</span><span class="sk-ab">Damage ×${s.dmg}${ABILITIES[s.id] ? " · Ultimate ×" + s.ult : ""}</span>${btn}</div>`;
         }).join("");
       }
       function refreshShop() {
@@ -2799,7 +2810,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         missiles.length = 0;
         rings.length = 0;
         letterIdx = 0;
-        prodigalTimer = timeWarpTimer = laserTimer = missileTimer = orbitTimer = shieldTimer = flash = 0; abilityCd = 0; speech = null; allies.length = 0;
+        prodigalTimer = timeWarpTimer = laserTimer = missileTimer = orbitTimer = shieldTimer = flash = 0; abilityCd = 0; speech = null; allies.length = 0; ultBoost.shot = ultBoost.missile = ultBoost.laser = 0;
         cardTimer = 0;
         cardEl.classList.remove("show");
         bossCount = 0;
@@ -3614,6 +3625,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         triggerGameOver();
         return true;
       }
+      function voidPulse(level, mult) {
+        enemyBullets.length = 0;
+        player.hp = Math.min(maxHp(), player.hp + 6 + level * 4);
+        mirrorFlash = 0.5;
+        rings.push({ x: player.x, y: player.y, r: 10, max: Math.hypot(viewWidth, viewHeight) * 0.8, c: "#d946ef" });
+        toast("VOID PULSE!", "#d946ef", 1.1);
+        if (level >= 2) for (const en of enemies.slice()) hurt(en, 120 * (level - 1) * mult * dmgMult());
+      }
       function updateLegendPowers(dt) {
         trinityCd = Math.max(0, trinityCd - dt);
         wayCd = Math.max(0, wayCd - dt);
@@ -3637,12 +3656,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           mirrorFlash = Math.max(0, mirrorFlash - dt);
           if (mirrorCd <= 0 && enemyBullets.length) {
             mirrorCd = 13 - powers.mirror * 2;
-            enemyBullets.length = 0;
-            player.hp = Math.min(maxHp(), player.hp + 6 + powers.mirror * 4);
-            mirrorFlash = 0.5;
-            rings.push({ x: player.x, y: player.y, r: 10, max: Math.hypot(viewWidth, viewHeight) * 0.8, c: "#d946ef" });
-            toast("VOID PULSE!", "#d946ef", 1.1);
-            if (powers.mirror >= 2) for (const en of enemies.slice()) hurt(en, 120 * (powers.mirror - 1) * dmgMult());
+            voidPulse(powers.mirror, 1);
           }
         }
         if (powers.frost) {
@@ -4440,10 +4454,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const blastClampX = (x, w) => Math.max(w / 2, Math.min(viewWidth - w / 2, x));
       // BOND SPRAY: the hostage boss's runaway fan (six pink shots aimed at you, every frame), now a real attack with a long cooldown.
       const SPRAY_STEP = 1 / 60, SPRAY_WIND = 0.8;
-      const SPRAY_SECONDS = 15;                                                   // <-- how long the spray lasts (all phases). Edit this number.
+      const SPRAY_SECONDS = 14;                                                   // <-- how long the spray lasts (all phases). Edit this number.
       const sprayDuration = (fp) => SPRAY_SECONDS;
       const SPRAY_FIRST_DELAY = 4;                                                // <-- seconds after the Fallen arrives before its FIRST spray. Edit this number.
-      const SPRAY_COOLDOWN = 10;                                                  // <-- seconds between sprays (all phases). Edit this number.
+      const SPRAY_COOLDOWN = 30;                                                  // <-- seconds between sprays (all phases). Edit this number.
       const sprayCooldown = (fp) => SPRAY_COOLDOWN;
       function sprayFan(en) {
         const aim = Math.atan2(player.y - en.y, player.x - en.x);
@@ -4806,6 +4820,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         orbitTimer = Math.max(0, orbitTimer - dt);
         shieldTimer = Math.max(0, shieldTimer - dt);
         abilityCd = Math.max(0, abilityCd - dt);
+        for (const k of ["shot", "missile", "laser"]) ultBoost[k] = Math.max(0, ultBoost[k] - dt);
         eclipseCd = Math.max(0, eclipseCd - dt);
         eclipseFx = Math.max(0, eclipseFx - dt);
         updateAllies(dt);
@@ -4833,7 +4848,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             if (Math.abs(b.x - player.x) < 24 && b.y < player.y) enemyBullets.splice(i, 1);
           }
           for (const en of enemies.slice()) {
-            if (en.y < player.y && Math.abs(en.x - player.x) < en.radius + 20) hurt(en, 430 * dmgMult() * dt);
+            if (en.y < player.y && Math.abs(en.x - player.x) < en.radius + 20) hurt(en, 430 * (ultBoost.laser > 0 ? ultBoost.mult : 1) * dmgMult() * dt);
           }
         }
 
@@ -4875,7 +4890,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           missileCd -= dt;
           if (missileCd <= 0) {
             missileCd = 0.26;
-            for (const s of [-1, 1]) missiles.push({ x: player.x + s * 14, y: player.y - 10, vx: s * 160, vy: -260, life: 3 });
+            for (const s of [-1, 1]) missiles.push({ x: player.x + s * 14, y: player.y - 10, vx: s * 160, vy: -260, life: 3, pow: ultBoost.missile > 0 ? ultBoost.mult : 1 });
           }
         }
         for (let i = missiles.length - 1; i >= 0; i--) {
@@ -4897,7 +4912,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           particles.push({ x: m.x, y: m.y, vx: 0, vy: 0, size: 2.5, life: 0.22, maxLife: 0.22, color: "#f9a8d4" });
           if (t && bd < t.radius + 6) {
             spawnExplosion(m.x, m.y, "#f472b6", 8, 160);
-            hurt(t, 48 * dmgMult());
+            hurt(t, 48 * (m.pow || 1) * dmgMult());
             m.life = 0;
           }
           if (m.life <= 0 || m.y < -40) missiles.splice(i, 1);
@@ -5067,7 +5082,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           keys.has("Space") || pointerFiring || touchFireHeld || IS_TOUCH || autoShoot;
 
         if (wantsFire && player.fireTimer <= 0) {
+          const firstNew = bullets.length;
           spawnPlayerShot();
+          const power = curSkin().dmg * (ultBoost.shot > 0 ? ultBoost.mult : 1);
+          for (let k = firstNew; k < bullets.length; k++) bullets[k].damage *= power;
           player.fireTimer =
             player.overdriveTimer > 0
               ? BASE_FIRE_COOLDOWN * (prodigalTimer > 0 ? 0.45 : 0.72)
