@@ -3547,7 +3547,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         } else {
           if (v % 5 === 4) {
             // calls two minions
-            for (const s of [-1, 1]) enemies.push({ type: "swarmer", x: Math.max(40, Math.min(viewWidth - 40, en.x + s * 90)), y: en.y, vx: 0, vy: 150, radius: 16, hp: 60, maxHp: 60, points: 200, fireTimer: 99, phase: 0, hitFlash: 0 });
+            for (const s of [-1, 1]) enemies.push({ type: "swarmer", x: Math.max(40, Math.min(viewWidth - 40, en.x + s * 90)), y: en.y, vx: 0, vy: 150, radius: 16, hp: 60, maxHp: 60, points: 200, fireTimer: 99, phase: 0, hitFlash: 0 }); empowerCalled(enemies.slice(-2));
           }
           if (v % 3 === 0) fan(rage ? 9 : 7, 0.22, 265, 12, "#ef4444");
           else if (v % 3 === 1) ring(rage ? 20 : 16, 180, 11, "#f97316", v * 0.19);
@@ -3785,7 +3785,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           wall(Math.max(90, Math.min(viewWidth - 90, player.x)));
           later(0.9, () => wall(Math.random() * (viewWidth - 200) + 100));
           later(1.8, () => wall(Math.max(90, Math.min(viewWidth - 90, player.x + (Math.random() - 0.5) * 240))));
-          for (const sd of [-1, 1]) enemies.push({ type: "swarmer", x: Math.max(40, Math.min(viewWidth - 40, en.x + sd * 90)), y: en.y, vx: 0, vy: 150, radius: 16, hp: 60, maxHp: 60, points: 200, fireTimer: 99, phase: 0, hitFlash: 0 });
+          for (const sd of [-1, 1]) enemies.push({ type: "swarmer", x: Math.max(40, Math.min(viewWidth - 40, en.x + sd * 90)), y: en.y, vx: 0, vy: 150, radius: 16, hp: 60, maxHp: 60, points: 200, fireTimer: 99, phase: 0, hitFlash: 0 }); empowerCalled(enemies.slice(-2));
         } else if (en.kind === "jian") {
           // the Void Orb: slow, big, lightly homing. A hit takes half of your current life.
           const aim = Math.atan2(player.y - en.y, player.x - en.x), spd = 150 + A * 6;
@@ -4249,17 +4249,35 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       ];
 
       // ---------- monsters: every small ship becomes the new design, forever ----------
+      const MONSTER_HP = 1.8;            // <-- monster HP multiplier (+0.45 per Fallen beaten). Edit this number.
+      const MONSTER_DMG = 1.8;           // <-- monster damage multiplier (+0.25 per Fallen beaten). Edit this number.
+      const MONSTER_FIRE_GAP = 0.75;     // <-- time between monster shots (1 = normal, lower = faster). Edit this number.
+      const MONSTER_SHOT_CAP = 55;       // <-- most damage one monster bullet can do. Edit this number.
+      const MONSTER_RAM_CAP = 60;        // <-- most damage crashing into a monster can do. Edit this number.
+      function evolve(en) {
+        if (ascension <= 0) return;
+        en.evoE = Math.min(8, ascension);
+        en.hp = en.maxHp = Math.round(en.maxHp * (1 + ascension * 0.8));
+        en.dmgMul = 1 + ascension * 0.6;
+        if (en.fireTimer < 90) en.fireTimer *= 0.8;
+        en.vy *= 1 + Math.min(0.4, ascension * 0.08);
+      }
+      // swarmers called in by a boss: once monsters exist, they get full monster strength too
+      function empowerCalled(list) {
+        if (monsterMode) for (const en of list) { evolve(en); monsterize(en); }
+      }
       function monsterize(en) {
         if (en.monster || en.type === "boss" || en.type === "orb") return;
         const fk = fallenKills;
         en.monster = true;
         en.radius = Math.round(en.radius * 1.2);
-        const hpM = 1.5 + fk * 0.4;
+        const hpM = MONSTER_HP + fk * 0.45;
         en.hp = Math.round(en.hp * hpM); en.maxHp = Math.round(en.maxHp * hpM);
-        en.dmgMul = (en.dmgMul || 1) * (1.6 + fk * 0.25);
+        en.dmgMul = (en.dmgMul || 1) * (MONSTER_DMG + fk * 0.25);
+        en.fireGap = Math.max(0.6, MONSTER_FIRE_GAP - fk * 0.05);   // used after every shot
         en.vy *= 1.12;
         if (en.type === "swarmer" && en.fireTimer > 90) en.fireTimer = 1.8 + Math.random() * 1.5;
-        else en.fireTimer *= 0.85;
+        else en.fireTimer *= en.fireGap;
       }
       function transformMinions() {
         monsterMode = true;
@@ -4424,7 +4442,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const SPRAY_STEP = 1 / 60, SPRAY_WIND = 0.8;
       const SPRAY_SECONDS = 15;                                                   // <-- how long the spray lasts (all phases). Edit this number.
       const sprayDuration = (fp) => SPRAY_SECONDS;
-      const SPRAY_FIRST_DELAY = 3;                                                // <-- seconds after the Fallen arrives before its FIRST spray. Edit this number.
+      const SPRAY_FIRST_DELAY = 4;                                                // <-- seconds after the Fallen arrives before its FIRST spray. Edit this number.
       const SPRAY_COOLDOWN = 30;                                                  // <-- seconds between sprays (all phases). Edit this number.
       const sprayCooldown = (fp) => SPRAY_COOLDOWN;
       function sprayFan(en) {
@@ -5072,14 +5090,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           if (waveSpawnCooldown <= 0) {
             spawnEnemyForWave();
             const ne = enemies[enemies.length - 1];
-            if (ascension > 0 && ne && ne.type !== "boss") {
-              ne.evoE = Math.min(8, ascension);
-              ne.hp = ne.maxHp = Math.round(ne.maxHp * (1 + ascension * 0.8));
-              ne.dmgMul = 1 + ascension * 0.6;
-              if (ne.fireTimer < 90) ne.fireTimer *= 0.8;
-              ne.vy *= 1 + Math.min(0.4, ascension * 0.08);
-            }
-            if (monsterMode && ne && ne.type !== "boss") monsterize(ne);
+            if (ne && ne.type !== "boss") { evolve(ne); if (monsterMode) monsterize(ne); }
             enemiesToSpawnInWave -= 1;
             const interval = Math.max(0.5, 0.95 - wave * 0.03);
             waveSpawnCooldown = interval * (0.75 + Math.random() * 0.5);
@@ -5165,7 +5176,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           if ((en.type !== "swarmer" || en.monster) && en.type !== "boss" && en.type !== "orb" && en.y > 40 && en.y < viewHeight * 0.65) {
             en.fireTimer -= dt;
             if (en.fireTimer <= 0) {
-              en.fireTimer = en.type === "vanguard" ? 1.55 : 2.15;
+              en.fireTimer = (en.type === "vanguard" ? 1.55 : 2.15) * (en.fireGap || 1);
               const angle = Math.atan2(player.y - en.y, player.x - en.x);
               const projSpeed = Math.min(310, 215 + wave * 5);
               enemyBullets.push({
@@ -5174,7 +5185,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
                 vx: Math.cos(angle) * projSpeed,
                 vy: Math.sin(angle) * projSpeed,
                 radius: en.monster ? 8 : en.evoE ? 7 : 5.5,
-                damage: Math.min(40, Math.round((en.type === "vanguard" ? 14 : 10) * (en.dmgMul || 1))),
+                damage: Math.min(en.monster ? MONSTER_SHOT_CAP : 40, Math.round((en.type === "vanguard" ? 14 : 10) * (en.dmgMul || 1))),
                 color: en.monster ? (en.type === "vanguard" ? "#fbbf24" : "#d946ef") : en.evoE ? "#c084fc" : undefined
               });
             }
@@ -5199,7 +5210,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             if (pDist < en.radius + player.radius * 0.85) {
               if (en.type !== "boss" && en.type !== "orb") enemies.splice(i, 1);
               spawnExplosion(player.x, player.y, "#2589ff", 16, 200);
-              if (takeHit(Math.min(45, Math.round((en.type === "vanguard" ? 20 : en.type === "boss" ? 18 : 14) * (en.dmgMul || 1))))) return;
+              if (takeHit(Math.min(en.monster ? MONSTER_RAM_CAP : 45, Math.round((en.type === "vanguard" ? 20 : en.type === "boss" ? 18 : 14) * (en.dmgMul || 1))))) return;
             }
           }
 
