@@ -1850,8 +1850,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         [META_KEY]: JSON.stringify({ coins: 0, potions: 0, jianKills: 0, orbs: false }),
         [POWERS_KEY]: JSON.stringify({ phoenix: 0, frost: 0, trinity: 0, way: 0, mirror: 0 })
       };
+      window.PB_PLAYER_STORAGE_KEYS = PLAYER_STORAGE_KEYS;
+      // Always returns a string for every key so the cloud document matches the Firestore rules.
       window.PB_getPlayerData = () => Object.fromEntries(
-        PLAYER_STORAGE_KEYS.map((key) => [key, gameStorage().getItem(key)])
+        PLAYER_STORAGE_KEYS.map((key) => {
+          let value = null;
+          try { value = gameStorage().getItem(key); } catch {}
+          return [key, typeof value === "string" ? value : EMPTY_PLAYER_DATA[key]];
+        })
       );
       window.PB_getEmptyPlayerData = () => ({ ...EMPTY_PLAYER_DATA });
       const powers = { phoenix: 0, frost: 0, trinity: 0, way: 0, mirror: 0 };
@@ -2114,12 +2120,13 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         }
         highScore = loadHighScore();
         wings = Math.max(0, Math.min(WINGS_MAX, parseInt(storage.getItem(WINGS_KEY) || "0", 10) || 0));
-        const meta = JSON.parse(storage.getItem(META_KEY) || "{}") || {};
+        const parseJsonObject = (raw) => { try { const v = JSON.parse(raw || "{}"); return v && typeof v === "object" ? v : {}; } catch { return {}; } };
+        const meta = parseJsonObject(storage.getItem(META_KEY));
         coins = Math.max(0, meta.coins | 0);
         potions = Math.max(0, Math.min(POTION_MAX, meta.potions | 0));
         jianKills = Math.max(0, Math.min(MAX_JIAN_SHOT_UPGRADES, meta.jianKills | 0));
         hasOrbs = Boolean(meta.orbs);
-        const savedPowers = JSON.parse(storage.getItem(POWERS_KEY) || "{}") || {};
+        const savedPowers = parseJsonObject(storage.getItem(POWERS_KEY));
         for (const key in powers) {
           powers[key] = Math.max(0, Math.min(key === "way" ? 1 : 3, savedPowers[key] | 0));
         }
@@ -4536,6 +4543,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         else delete authMessage.dataset.tone;
       };
 
+      const withTimeout = (promise, ms, label) => new Promise((resolve, reject) => {
+        const timer = window.setTimeout(() => reject(new Error(label + " timed out")), ms);
+        promise.then(
+          (value) => { window.clearTimeout(timer); resolve(value); },
+          (error) => { window.clearTimeout(timer); reject(error); }
+        );
+      });
+
       const getGuestName = () => {
         try {
           if (sessionStorage.getItem(window.PB_GUEST_MODE_KEY) !== "true") return null;
@@ -4551,6 +4566,24 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         }
       };
 
+      // Guest UI is applied immediately and never depends on Firebase loading,
+      // so "Play as Guest" works even when sign-in services are slow or blocked.
+      const showGuestUi = (name) => {
+        window.PB_isGuest = true;
+        window.PB_canPlay = true;
+        startButton.disabled = false;
+        startButton.classList.remove("hidden");
+        accountTitle.textContent = "Welcome, " + name;
+        accountDescription.textContent = "Guest progress is temporary and clears when this tab closes.";
+        accountStatus.textContent = "Guest session";
+        accountStatus.className = "start-local-status";
+        providerButtons.classList.remove("hidden");
+        guestButton.classList.add("hidden");
+        signOutButton.classList.add("hidden");
+        playModeTitle.textContent = "PLAYING AS GUEST";
+        playModeDescription.textContent = "Your progress is temporary and clears when this tab closes.";
+      };
+
       guestButton.addEventListener("click", () => {
         try {
           const name = "Anonymous " + String(Math.floor(1000 + Math.random() * 9000));
@@ -4563,6 +4596,12 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         }
       });
 
+      const bootGuestName = getGuestName();
+      if (bootGuestName) {
+        showGuestUi(bootGuestName);
+        setMessage("Playing as " + bootGuestName + ". Progress is temporary.");
+      }
+
       const setBusy = (busy) => {
         googleButton.disabled = busy;
         signOutButton.disabled = busy;
@@ -4574,7 +4613,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
       const explainAuthError = (error) => {
         switch (error && error.code) {
           case "auth/unauthorized-domain":
-            return "This website domain is not authorized in Firebase Authentication.";
+            return "This website domain is not authorized in Firebase Authentication (Authentication > Settings > Authorized domains).";
           case "auth/operation-not-allowed":
             return "This sign-in provider is disabled in Firebase Authentication.";
           case "auth/popup-blocked":
@@ -4586,8 +4625,12 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             return "This email already uses another sign-in method. Sign in with that method first.";
           case "auth/network-request-failed":
             return "Network error. Check your connection and try again.";
+          case "auth/web-storage-unsupported":
+            return "This browser is blocking storage needed for sign-in. Enable cookies/site data and try again.";
+          case "auth/operation-not-supported-in-this-environment":
+            return "Google sign-in does not work inside embedded or in-app browsers. Open the game in Chrome or Safari, or play as guest.";
           default:
-            return "Sign-in failed (" + ((error && error.code) || "unknown error") + "). Check Firebase and Google provider settings.";
+            return "Sign-in failed (" + ((error && error.code) || (error && error.message) || "unknown error") + "). Check Firebase and Google provider settings.";
         }
       };
 
@@ -4608,13 +4651,20 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         return "Anonymous " + String((hash >>> 0) % 9000 + 1000);
       };
       const googleDisplayName = (user) => (user.displayName || "Google User").slice(0, 40);
+      const isTransientError = (error) => {
+        const code = error && error.code;
+        return code === "unavailable" || code === "deadline-exceeded" || code === "aborted"
+          || code === "resource-exhausted" || code === "internal"
+          || /offline|timed out/i.test((error && error.message) || "");
+      };
+      const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
       try {
-        const [firebaseAppSdk, firebaseAuthSdk, firestoreSdk] = await Promise.all([
+        const [firebaseAppSdk, firebaseAuthSdk, firestoreSdk] = await withTimeout(Promise.all([
           import("https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js"),
           import("https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js"),
           import("https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js")
-        ]);
+        ]), 20000, "Loading Firebase");
         const firebaseApp = firebaseAppSdk.initializeApp({
           apiKey: "AIzaSyBLQNCSdlIzAW5q9GN57kDHtmJsvKtEX2o",
           authDomain: "prodigal-runner.firebaseapp.com",
@@ -4622,7 +4672,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           appId: "1:238978847862:web:adf54c221f2a41ec5fbb57"
         });
         const auth = firebaseAuthSdk.getAuth(firebaseApp);
-        const db = firestoreSdk.getFirestore(firebaseApp);
+        // Auto-detect long polling avoids "client is offline" failures behind
+        // proxies, WebViews and some mobile networks.
+        let db;
+        try {
+          db = firestoreSdk.initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true });
+        } catch (error) {
+          db = firestoreSdk.getFirestore(firebaseApp);
+        }
         const googleProvider = new firebaseAuthSdk.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: "select_account" });
 
@@ -4668,18 +4725,48 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           setLeaderboardMessage("Leaderboard unavailable", "Check Firestore setup and access rules" + code + ".", "Unavailable");
         });
 
+        // ------------------------------------------------------------------
+        // Local bookkeeping so progress is never lost between device and cloud
+        // ------------------------------------------------------------------
+        const LOCAL_ACCOUNT_OWNER_KEY = "prodigal_blaster_google_owner_v1";
+        const LOCAL_ACCOUNT_DIRTY_KEY = "prodigal_blaster_google_dirty_v1";
+        const readLocal = (key) => {
+          try { return localStorage.getItem(key); } catch (error) { return null; }
+        };
+        const writeLocal = (key, value) => {
+          try {
+            if (value === null) localStorage.removeItem(key);
+            else localStorage.setItem(key, value);
+          } catch (error) {
+            console.error("Could not update local account marker", error);
+          }
+        };
+        // "dirty" = this device holds progress for <uid> that has not reached the cloud yet.
+        const markDirty = (uid) => writeLocal(LOCAL_ACCOUNT_DIRTY_KEY, uid);
+        const clearDirty = (uid) => { if (readLocal(LOCAL_ACCOUNT_DIRTY_KEY) === uid) writeLocal(LOCAL_ACCOUNT_DIRTY_KEY, null); };
+        const isDirty = (uid) => readLocal(LOCAL_ACCOUNT_DIRTY_KEY) === uid;
+
         const signIn = async () => {
           setBusy(true);
           setMessage("Opening secure Google sign-in...");
           try {
-            if (window.matchMedia("(pointer: coarse)").matches) {
-              await firebaseAuthSdk.signInWithRedirect(auth, googleProvider);
-              return;
-            }
+            // Popup everywhere: redirect sign-in is unreliable on mobile browsers
+            // when the Firebase auth domain differs from the site's domain.
             await firebaseAuthSdk.signInWithPopup(auth, googleProvider);
           } catch (error) {
             console.error("Firebase sign-in failed", error);
-            setMessage(explainAuthError(error), "error");
+            let failure = error;
+            if (error && error.code === "auth/popup-blocked") {
+              try {
+                setMessage("Redirecting to Google sign-in...");
+                await firebaseAuthSdk.signInWithRedirect(auth, googleProvider);
+                return;
+              } catch (redirectError) {
+                console.error("Firebase redirect sign-in failed", redirectError);
+                failure = redirectError;
+              }
+            }
+            setMessage(explainAuthError(failure), "error");
           } finally {
             setBusy(false);
           }
@@ -4689,8 +4776,25 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         signOutButton.addEventListener("click", async () => {
           setBusy(true);
           try {
-            if (typeof window.PB_flushAccountSave === "function") await window.PB_flushAccountSave();
+            const user = auth.currentUser;
+            let uploaded = true;
+            if (typeof window.PB_flushAccountSave === "function") uploaded = await window.PB_flushAccountSave();
+            if (!uploaded && !window.confirm("Your latest progress could not be uploaded yet. Sign out anyway? It stays on this device and uploads next time you sign in with this account.")) {
+              return;
+            }
             await firebaseAuthSdk.signOut(auth);
+            if (uploaded && user) {
+              // Everything is safely in the cloud: remove the local copy of this account's data.
+              try {
+                for (const key of (window.PB_PLAYER_STORAGE_KEYS || [])) localStorage.removeItem(key);
+              } catch (error) {
+                console.error("Could not clear local player data", error);
+              }
+              writeLocal(LOCAL_ACCOUNT_OWNER_KEY, null);
+              clearDirty(user.uid);
+            }
+            // Reload so the game never keeps showing the previous account's coins.
+            window.location.reload();
           } catch (error) {
             console.error("Firebase sign-out failed", error);
             setMessage("Sign-out failed. Please try again.", "error");
@@ -4698,13 +4802,14 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             setBusy(false);
           }
         });
+        setBusy(false);
 
         let redirectError = null;
         try {
-          await firebaseAuthSdk.getRedirectResult(auth);
+          await withTimeout(firebaseAuthSdk.getRedirectResult(auth), 10000, "Redirect sign-in check");
         } catch (error) {
           console.error("Firebase redirect sign-in failed", error);
-          redirectError = error;
+          if (error && error.code) redirectError = error;
         }
 
         window.PB_submitScore = async (rawScore) => {
@@ -4784,87 +4889,105 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           }
         };
 
-        const LOCAL_ACCOUNT_OWNER_KEY = "prodigal_blaster_google_owner_v1";
+        // ------------------------------------------------------------------
+        // Cloud save (coins, potions, wings, powers, best score, mute)
+        // ------------------------------------------------------------------
         const accountProfileRef = (user) => firestoreSdk.doc(db, "playerProfiles", user.uid);
         let accountSaveTimer = null;
+        let accountRetryTimer = null;
+        let firstQueuedAt = 0;
+        let saveVersion = 0;
         let authStateVersion = 0;
 
+        const writeProfile = (user, playerData) => firestoreSdk.setDoc(accountProfileRef(user), {
+          uid: user.uid,
+          displayName: googleDisplayName(user),
+          playerData,
+          updatedAt: firestoreSdk.serverTimestamp()
+        });
+
+        // Resolves true when the cloud copy is up to date, false when the write failed.
         const saveAccountProfile = async (user) => {
-          if (!user || !window.PB_accountDataLoaded || !isGoogleUser(auth.currentUser) || auth.currentUser.uid !== user.uid) return;
+          const current = auth.currentUser;
+          if (!user || !window.PB_accountDataLoaded || !isGoogleUser(current) || current.uid !== user.uid) return true;
+          const versionAtSave = saveVersion;
           try {
-            await firestoreSdk.setDoc(accountProfileRef(user), {
-              uid: user.uid,
-              displayName: googleDisplayName(user),
-              playerData: window.PB_getPlayerData(),
-              updatedAt: firestoreSdk.serverTimestamp()
-            }, { merge: true });
+            await writeProfile(user, window.PB_getPlayerData());
+            if (versionAtSave === saveVersion) clearDirty(user.uid);
+            return true;
           } catch (error) {
             console.error("Firebase account data save failed", error);
             const code = error && error.code ? " (" + error.code + ")" : "";
-            setMessage("Could not save your Google account data" + code + ". Check Firestore access rules.", "error");
+            setMessage("Could not save your Google account data" + code + ". Will retry.", "error");
+            if (!(error && error.code === "permission-denied")) {
+              if (accountRetryTimer !== null) window.clearTimeout(accountRetryTimer);
+              accountRetryTimer = window.setTimeout(() => {
+                accountRetryTimer = null;
+                void saveAccountProfile(auth.currentUser);
+              }, 5000);
+            }
+            return false;
           }
         };
 
         window.PB_queueAccountSave = () => {
           const user = auth.currentUser;
           if (!window.PB_accountDataLoaded || !isGoogleUser(user)) return;
+          saveVersion++;
+          markDirty(user.uid);
+          const now = Date.now();
+          if (!firstQueuedAt) firstQueuedAt = now;
           if (accountSaveTimer !== null) window.clearTimeout(accountSaveTimer);
+          // Debounce bursts (coin pickups) but never wait longer than ~3s in total.
+          const delay = Math.max(0, Math.min(600, firstQueuedAt + 3000 - now));
           accountSaveTimer = window.setTimeout(() => {
             accountSaveTimer = null;
+            firstQueuedAt = 0;
             void saveAccountProfile(user);
-          }, 350);
+          }, delay);
         };
 
         window.PB_flushAccountSave = async () => {
-          if (accountSaveTimer === null) return;
-          window.clearTimeout(accountSaveTimer);
-          accountSaveTimer = null;
-          await saveAccountProfile(auth.currentUser);
+          if (accountSaveTimer !== null) {
+            window.clearTimeout(accountSaveTimer);
+            accountSaveTimer = null;
+          }
+          firstQueuedAt = 0;
+          const user = auth.currentUser;
+          if (!user || !window.PB_accountDataLoaded || !isDirty(user.uid)) return true;
+          return saveAccountProfile(user);
         };
 
-        const loadGoogleAccountData = async (user) => {
-          const wasTemporarySession = window.PB_temporarySession;
-          const guestOrLocalData = window.PB_getPlayerData();
-          let previousOwner = null;
-          try {
-            previousOwner = localStorage.getItem(LOCAL_ACCOUNT_OWNER_KEY);
-          } catch (error) {
-            console.error("Could not read the local Google account marker", error);
-          }
-          const initialData = wasTemporarySession || !previousOwner || previousOwner === user.uid
-            ? guestOrLocalData
-            : window.PB_getEmptyPlayerData();
+        const loadGoogleAccountData = async (user, localSnapshot) => {
+          const previousOwner = readLocal(LOCAL_ACCOUNT_OWNER_KEY);
+          const localIsTrusted = localSnapshot.wasTemporary || !previousOwner || previousOwner === user.uid;
+          const initialData = localIsTrusted ? localSnapshot.data : window.PB_getEmptyPlayerData();
+          // Progress made on this device that never reached the cloud (tab closed, offline...)
+          const localHasUnsynced = !localSnapshot.wasTemporary && previousOwner === user.uid && isDirty(user.uid);
 
-          window.PB_temporarySession = false;
-          window.PB_isGuest = false;
-          const profileRef = accountProfileRef(user);
-          const profileSnapshot = await firestoreSdk.getDoc(profileRef);
+          const profileSnapshot = await firestoreSdk.getDoc(accountProfileRef(user));
           if (!auth.currentUser || auth.currentUser.uid !== user.uid) return false;
+
           let playerData;
-          if (profileSnapshot.exists()) {
+          if (profileSnapshot.exists() && !localHasUnsynced) {
             const profile = profileSnapshot.data();
             if (!profile.playerData || typeof profile.playerData !== "object" || Array.isArray(profile.playerData)) {
               throw new Error("Google account data is missing or malformed.");
             }
             playerData = profile.playerData;
           } else {
+            // New account, or this device is ahead of the cloud: upload local data.
             playerData = initialData;
-            await firestoreSdk.setDoc(profileRef, {
-              uid: user.uid,
-              displayName: googleDisplayName(user),
-              playerData,
-              updatedAt: firestoreSdk.serverTimestamp()
-            });
+            await writeProfile(user, playerData);
+            clearDirty(user.uid);
           }
 
           if (!auth.currentUser || auth.currentUser.uid !== user.uid) return false;
+          window.PB_temporarySession = false;
+          window.PB_isGuest = false;
           window.PB_applyPlayerData(playerData);
           window.PB_accountDataLoaded = true;
-          try {
-            localStorage.setItem(LOCAL_ACCOUNT_OWNER_KEY, user.uid);
-          } catch (error) {
-            console.error("Could not save the local Google account marker", error);
-          }
+          writeLocal(LOCAL_ACCOUNT_OWNER_KEY, user.uid);
           return true;
         };
 
@@ -4880,6 +5003,11 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           startButton.disabled = !window.PB_canPlay;
           startButton.classList.toggle("hidden", !window.PB_canPlay);
           if (googleUser) {
+            // Snapshot guest/local progress once, before anything switches storage.
+            const localSnapshot = {
+              wasTemporary: Boolean(window.PB_temporarySession),
+              data: window.PB_getPlayerData()
+            };
             const name = googleDisplayName(user);
             accountTitle.textContent = "Welcome, " + name;
             accountDescription.textContent = "Loading your saved Google account data...";
@@ -4891,7 +5019,18 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
             playModeDescription.textContent = "Loading your saved game data...";
             setMessage("Loading your Google account data...");
             try {
-              const profileLoaded = await loadGoogleAccountData(user);
+              let profileLoaded = false;
+              for (let attempt = 0; ; attempt++) {
+                try {
+                  profileLoaded = await loadGoogleAccountData(user, localSnapshot);
+                  break;
+                } catch (error) {
+                  if (attempt >= 2 || !isTransientError(error)) throw error;
+                  console.warn("Retrying Google account data load", error);
+                  await sleep(1500 * (attempt + 1));
+                  if (stateVersion !== authStateVersion || !auth.currentUser || auth.currentUser.uid !== user.uid) return;
+                }
+              }
               if (!profileLoaded) return;
               if (stateVersion !== authStateVersion || !auth.currentUser || auth.currentUser.uid !== user.uid) return;
               try {
@@ -4918,7 +5057,7 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
               startButton.disabled = true;
               startButton.classList.add("hidden");
               const code = error && error.code ? " (" + error.code + ")" : "";
-              setMessage("Could not load your Google account data" + code + ". Check Firestore setup and access rules.", "error");
+              setMessage("Could not load your Google account data" + code + ". Check your connection and Firestore access rules, then reload.", "error");
             }
           } else {
             window.PB_isAuthenticated = false;
@@ -4929,19 +5068,19 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
                 setMessage("This account is not signed in with Google. Please sign out and continue with Google.", "error");
               });
             }
-            accountTitle.textContent = "Welcome, " + (guestName || "Guest");
-            accountDescription.textContent = isGuest
-              ? "Guest progress is temporary and clears when this tab closes."
-              : "Sign in to save data or play as guest (temporary data).";
-            accountStatus.textContent = isGuest ? "Guest session" : "Choose mode";
-            accountStatus.className = "start-local-status";
-            providerButtons.classList.remove("hidden");
-            guestButton.classList.toggle("hidden", isGuest);
-            signOutButton.classList.add("hidden");
-            playModeTitle.textContent = isGuest ? "PLAYING AS GUEST" : "CHOOSE HOW TO PLAY";
-            playModeDescription.textContent = isGuest
-              ? "Your progress is temporary and clears when this tab closes."
-              : "Sign in to save data or play as guest (temporary data).";
+            if (isGuest) {
+              showGuestUi(guestName);
+            } else {
+              accountTitle.textContent = "Welcome, Guest";
+              accountDescription.textContent = "Sign in to save data or play as guest (temporary data).";
+              accountStatus.textContent = "Choose mode";
+              accountStatus.className = "start-local-status";
+              providerButtons.classList.remove("hidden");
+              guestButton.classList.remove("hidden");
+              signOutButton.classList.add("hidden");
+              playModeTitle.textContent = "CHOOSE HOW TO PLAY";
+              playModeDescription.textContent = "Sign in to save data or play as guest (temporary data).";
+            }
 
             if (redirectError) {
               setMessage(explainAuthError(redirectError), "error");
@@ -4963,17 +5102,9 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
           window.PB_canPlay = Boolean(guestName);
           startButton.disabled = !window.PB_canPlay;
           startButton.classList.toggle("hidden", !window.PB_canPlay);
-          if (guestName) {
-            accountTitle.textContent = "Welcome, " + guestName;
-            accountDescription.textContent = "Guest progress is temporary and clears when this tab closes.";
-            accountStatus.textContent = "Guest session";
-            accountStatus.className = "start-local-status";
-            guestButton.classList.add("hidden");
-          }
+          if (guestName) showGuestUi(guestName);
           setMessage("Could not check sign-in status. Reload the page and try again.", "error");
         });
-
-        setBusy(false);
       } catch (error) {
         console.error("Firebase services could not initialize", error);
         window.PB_isAuthenticated = false;
@@ -4983,16 +5114,10 @@ button, input:where([type='button'], [type='reset'], [type='submit']), ::file-se
         startButton.disabled = !window.PB_canPlay;
         startButton.classList.toggle("hidden", !window.PB_canPlay);
         if (guestName) {
-          accountTitle.textContent = "Welcome, " + guestName;
-          accountDescription.textContent = "Guest progress is temporary and clears when this tab closes.";
-          accountStatus.textContent = "Guest session";
-          accountStatus.className = "start-local-status";
-          guestButton.classList.add("hidden");
-          playModeTitle.textContent = "PLAYING AS GUEST";
-          playModeDescription.textContent = "Your progress is temporary and clears when this tab closes.";
+          showGuestUi(guestName);
           setMessage("Google sign-in is unavailable. You can still play as a temporary guest.", "error");
         } else {
-          setMessage("Could not load sign-in. Check your connection and Firebase setup.", "error");
+          setMessage("Could not load Google sign-in. You can still play as a guest, or reload to try again.", "error");
         }
         setLeaderboardMessage("Leaderboard unavailable", "Could not load Firebase services.", "Unavailable");
       }
